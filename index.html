@@ -343,88 +343,67 @@ function moveBasket(dir){
 }
 function renderCatchRound(){
  clearTimeout(catchTimer);
- if(catchLoop) cancelAnimationFrame(catchLoop);
+ if(catchLoop)cancelAnimationFrame(catchLoop);
  catchResolved=false;
  const w=catchWords[ci];
- document.getElementById('catchPrompt').textContent='🧺 接住「'+w.zh+'」！';
- document.getElementById('catchFeedback').textContent='';
+ document.getElementById('catchPrompt').textContent='🧺 移動籃子，再點一下落進籃子的「'+w.zh+'」！';
+ document.getElementById('catchFeedback').textContent='單字進入籃子範圍時，直接點單字即可接住。';
  const area=document.getElementById('catchArea');
  area.querySelectorAll('.falling-word').forEach(x=>x.remove());
 
  const options=shuffle([w,...shuffle(words.filter(x=>x.en!==w.en)).slice(0,2)]);
  options.forEach((x,i)=>{
-   const d=document.createElement('div');
+   const d=document.createElement('button');
    d.className='falling-word';
    d.textContent=x.en;
    d.dataset.correct=x.en===w.en?'1':'0';
-   d.dataset.finished='0';
-   d.style.left=(12+i*34+Math.random()*7)+'%';
-   d.style.animationDuration=(4.8+Math.random()*1.6)+'s';
+   d.style.left=(10+i*34+Math.random()*5)+'%';
+   d.style.animationDuration=(5.5+Math.random()*1.2)+'s';
+   d.style.border='0';
+   d.style.cursor='pointer';
+   d.style.zIndex='8';
+   d.onclick=(e)=>{e.stopPropagation();tryCatchWord(d,w)};
    area.appendChild(d);
  });
 
- const start=performance.now();
- function loop(now){
-   if(catchResolved)return;
-   const basket=document.getElementById('basket');
-   const br=basket.getBoundingClientRect();
-   const items=[...area.querySelectorAll('.falling-word')];
-   let allFinished=true;
+ // Give the round enough time for the slowest word to finish.
+ catchTimer=setTimeout(()=>resolveCatch(false,w,null,true),7200);
+}
 
-   for(const item of items){
-     if(item.dataset.finished==='1')continue;
-     allFinished=false;
-     const r=item.getBoundingClientRect();
-
-     const touching = r.bottom>=br.top && r.top<=br.bottom && r.left<br.right && r.right>br.left;
-     if(touching){
-       item.dataset.finished='1';
-       resolveCatch(item.dataset.correct==='1',w,item);
-       return;
-     }
-
-     const areaRect=area.getBoundingClientRect();
-     if(r.top>areaRect.bottom-8){
-       item.dataset.finished='1';
-     }
-   }
-
-   const unfinished=items.some(x=>x.dataset.finished!=='1');
-   if(!unfinished){
-     resolveCatch(false,w,null,true);
-     return;
-   }
-   catchLoop=requestAnimationFrame(loop);
+function tryCatchWord(item,w){
+ if(catchResolved)return;
+ const basket=document.getElementById('basket');
+ const br=basket.getBoundingClientRect(),r=item.getBoundingClientRect();
+ // Generous catch zone for touch screens: horizontal overlap plus word near basket vertically.
+ const horizontal=r.left<br.right+24&&r.right>br.left-24;
+ const vertical=r.bottom>=br.top-65&&r.top<=br.bottom+25;
+ const f=document.getElementById('catchFeedback');
+ if(!horizontal||!vertical){
+   f.className='feedback badtxt';
+   f.textContent='再靠近籃子一點再接！';
+   return;
  }
- catchLoop=requestAnimationFrame(loop);
+ resolveCatch(item.dataset.correct==='1',w,item,false);
 }
 
 function resolveCatch(ok,w,item,missedAll=false){
  if(catchResolved)return;
  catchResolved=true;
+ clearTimeout(catchTimer);
  if(catchLoop)cancelAnimationFrame(catchLoop);
- document.querySelectorAll('#catchArea .falling-word').forEach(x=>x.style.animationPlayState='paused');
-
+ document.querySelectorAll('#catchArea .falling-word').forEach(x=>{x.style.animationPlayState='paused';x.disabled=true});
  const f=document.getElementById('catchFeedback');
  const next=()=>{ci++;if(ci<catchWords.length)renderCatchRound();else nextSelectedStage('catchGame')};
-
  if(ok){
    score+=15;catchRoundScore+=15;
    document.getElementById('catchScore').textContent=catchRoundScore;
-   f.className='feedback goodtxt';
-   f.textContent='🎉 接到了！+15 ⭐';
-   if(item){item.style.transform='scale(1.15)';item.style.opacity='.25'}
+   f.className='feedback goodtxt';f.textContent='🎉 接到了！+15 ⭐';
+   if(item){item.style.transform='scale(1.2)';item.style.opacity='.25'}
    setTimeout(next,800);
  }else{
-   wrongWords.push(w);
-   f.className='feedback badtxt';
-   if(item){
-     f.textContent='哎呀！接錯單字了。';
-     showWrongModal(w,next);
-   }else if(missedAll){
-     f.textContent='正確單字沒有接到，再記一次！';
-     showWrongModal(w,next);
-   }
+   wrongWords.push(w);f.className='feedback badtxt';
+   f.textContent=item?'哎呀！接錯單字了。':'正確單字掉下去了！';
+   showWrongModal(w,next);
  }
 }
 function startReview(){reviewList=shuffle([...new Map(wrongWords.map(w=>[w.en,w])).values()]);ri=0;reviewScore=0;if(reviewList.length===0){nextSelectedStage('review');return}show('review');renderReview()}
