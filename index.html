@@ -38,6 +38,8 @@
 @keyframes petEvolve{0%{transform:scale(1) rotate(0)}35%{transform:scale(1.5) rotate(-10deg)}70%{transform:scale(.8) rotate(10deg)}100%{transform:scale(1) rotate(0)}}@keyframes petJump{50%{transform:translateY(-24px) scale(1.1)}}@keyframes sceneIn{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:scale(1)}}@media(max-width:650px){.stage-select{grid-template-columns:1fr}}
 
 .unit-toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px}.unit-tabs{display:flex;gap:8px;flex-wrap:wrap}.unit-tab{border:0;border-radius:999px;padding:10px 14px;background:#edf4ff;font-weight:800}.unit-tab.active{background:var(--primary);color:#fff}.unit-card{border:2px solid #dfe9f1;border-radius:18px;padding:16px;background:#fff}.unit-select-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.unit-choice{border:2px solid #dfe9f1;border-radius:20px;padding:20px;background:#fff;text-align:left}.unit-choice:hover{transform:translateY(-2px);box-shadow:var(--shadow)}@media(max-width:650px){.unit-select-grid{grid-template-columns:1fr}}
+
+.translation-hint{grid-column:1/-1;font-size:13px;color:var(--muted);margin-top:-4px}.translation-hint.ok{color:var(--good)}.translation-hint.warn{color:#b06a00}
 </style>
 </head>
 <body><div class="wrap">
@@ -88,7 +90,7 @@
    <label class="stage-card"><input type="checkbox" value="match" checked>🃏 第二關：翻牌配對</label>
    <label class="stage-card"><input type="checkbox" value="animGame" checked>🎈 第三關：單字氣球大作戰</label>
    <label class="stage-card"><input type="checkbox" value="catchGame" checked>🧺 第四關：接住正確單字</label>
-   <label class="stage-card"><input type="checkbox" value="theater" checked>🎬 第五關：單字小劇場</label>
+   <label class="stage-card hidden"><input type="checkbox" value="theater">🎬 第五關：單字小劇場</label>
    <label class="stage-card"><input type="checkbox" value="review" checked>🔥 Boss：錯題再挑戰</label>
   </div>
   <div class="row" style="margin-top:18px"><button class="btn primary big" onclick="startSelectedStages()">開始挑戰 🚀</button><button class="btn" onclick="toggleAllStages(true)">全選</button><button class="btn" onclick="toggleAllStages(false)">取消全選</button></div>
@@ -125,7 +127,7 @@
  </div>
 </section>
 
-<section id="theater" class="hidden">
+<section id="theater" class="hidden" style="display:none!important">
  <div class="topbar"><h2>🎬 第五關：單字小劇場</h2><span class="pill">⭐ <span id="theaterScore">0</span></span></div>
  <div class="skip-wrap"><button class="btn skip-btn" onclick="skipStage('theater')">⏭ 跳過此關</button></div>
  <div class="card">
@@ -149,12 +151,72 @@ if(!units){
 let currentUnitId=localStorage.getItem('wordAdventureCurrentUnit')||units[0].id;
 let words=(units.find(u=>u.id===currentUnitId)||units[0]).words;let quizQuestions=[],qi=0,score=0,wrongWords=[],selectedMatch=null,matched=0,reviewList=[],ri=0,reviewScore=0,modalNext=null,animWords=[],ai=0,animRoundScore=0,moveTimer=null,combo=0,catchWords=[],ci=0,catchRoundScore=0,catchTimer=null,basketX=50,selectedStages=[],currentStageIndex=0,theaterWords=[],ti=0,theaterRoundScore=0,petXP=Number(localStorage.getItem('wordAdventurePetXP')||0),catchResolved=false,catchLoop=null;
 function show(id){document.querySelectorAll('section').forEach(s=>s.classList.add('hidden'));document.getElementById(id).classList.remove('hidden');if(id==='teacher')renderTeacher();if(id==='student')renderStudentUnits()}
-function addWord(en='',zh=''){const row=document.createElement('div');row.className='word-row';row.innerHTML=`<input placeholder="英文單字" value="${escapeHtml(en)}"><input placeholder="中文意思" value="${escapeHtml(zh)}"><button class="btn" onclick="this.parentElement.remove()">刪除</button>`;document.getElementById('wordList').appendChild(row)}
-function escapeHtml(s){return s.replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
-function getCurrentUnit(){
-  let u=units.find(x=>x.id===currentUnitId);
-  if(!u){u=units[0];currentUnitId=u.id}
-  return u;
+
+const zhDictionary={
+ apple:'蘋果',banana:'香蕉',orange:'柳橙',grape:'葡萄',watermelon:'西瓜',
+ dog:'狗',cat:'貓',bird:'鳥',fish:'魚',rabbit:'兔子',tiger:'老虎',lion:'獅子',elephant:'大象',monkey:'猴子',
+ book:'書',pen:'筆',pencil:'鉛筆',eraser:'橡皮擦',ruler:'尺',desk:'書桌',chair:'椅子',
+ school:'學校',classroom:'教室',library:'圖書館',hospital:'醫院',park:'公園',home:'家',
+ teacher:'老師',student:'學生',friend:'朋友',family:'家庭',
+ breakfast:'早餐',lunch:'午餐',dinner:'晚餐',food:'食物',water:'水',milk:'牛奶',
+ hungry:'飢餓的',thirsty:'口渴的',happy:'開心的',sad:'難過的',angry:'生氣的',sleepy:'想睡的',
+ beautiful:'漂亮的',big:'大的',small:'小的',tall:'高的',short:'矮的／短的',fast:'快的',slow:'慢的',
+ run:'跑',walk:'走路',jump:'跳',swim:'游泳',read:'閱讀',write:'寫',eat:'吃',drink:'喝',sleep:'睡覺',
+ sun:'太陽',rain:'雨',cloud:'雲',wind:'風',hot:'熱的',cold:'冷的',
+ red:'紅色',blue:'藍色',green:'綠色',yellow:'黃色',black:'黑色',white:'白色',
+ one:'一',two:'二',three:'三',four:'四',five:'五',six:'六',seven:'七',eight:'八',nine:'九',ten:'十'
+};
+
+function suggestZh(en){
+ const key=(en||'').trim().toLowerCase();
+ return zhDictionary[key]||'';
+}
+
+function handleEnglishInput(input){
+ const row=input.closest('.word-row');
+ if(!row)return;
+ const zhInput=row.querySelector('.zh-input');
+ const hint=row.nextElementSibling&&row.nextElementSibling.classList.contains('translation-hint')?row.nextElementSibling:null;
+ const suggestion=suggestZh(input.value);
+ if(suggestion){
+   if(!zhInput.dataset.userEdited || zhInput.dataset.userEdited==='false'){
+     zhInput.value=suggestion;
+   }
+   if(hint){
+     hint.textContent='💡 建議中文：'+suggestion+'（可自行修改）';
+     hint.className='translation-hint ok';
+   }
+ }else if(hint){
+   hint.textContent='目前沒有內建建議，請手動輸入中文意思。';
+   hint.className='translation-hint warn';
+ }
+}
+
+function addWord(en='',zh=''){
+  const wrap=document.createElement('div');
+  const row=document.createElement('div');
+  row.className='word-row';
+  row.innerHTML='<input class="en-input" placeholder="英文單字" value="'+escapeHtml(en)+'"><input class="zh-input" placeholder="中文意思" value="'+escapeHtml(zh)+'"><button class="btn" type="button">刪除</button>';
+  const hint=document.createElement('div');
+  hint.className='translation-hint';
+  wrap.appendChild(row);wrap.appendChild(hint);
+  document.getElementById('wordList').appendChild(wrap);
+
+  const enInput=row.querySelector('.en-input');
+  const zhInput=row.querySelector('.zh-input');
+  const del=row.querySelector('button');
+
+  zhInput.dataset.userEdited=zh?'true':'false';
+  zhInput.addEventListener('input',()=>{zhInput.dataset.userEdited='true'});
+  enInput.addEventListener('input',()=>handleEnglishInput(enInput));
+  enInput.addEventListener('blur',()=>handleEnglishInput(enInput));
+  del.addEventListener('click',()=>wrap.remove());
+
+  if(en&&!zh)handleEnglishInput(enInput);
+  else if(en&&zh){
+    const s=suggestZh(en);
+    if(s){hint.textContent='💡 建議中文：'+s+'（目前使用者已填寫，可自行保留）';hint.className='translation-hint ok'}
+  }
 }
 function persistUnits(){
   localStorage.setItem('wordAdventureUnits',JSON.stringify(units));
