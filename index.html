@@ -51,11 +51,11 @@
     <h3>單元管理</h3>
     <div class="unit-toolbar">
       <input id="newUnitName" placeholder="例如：Unit 1、動物、學校生活" style="max-width:320px">
-      <button class="btn primary" onclick="createUnit()">＋ 新增單元</button>
+      <button class="btn primary" type="button" id="createUnitBtn">＋ 新增單元</button>
       <button class="btn" onclick="renameCurrentUnit()">✏️ 重新命名</button>
       <button class="btn" onclick="deleteCurrentUnit()">🗑 刪除單元</button>
     </div>
-    <div id="unitTabs" class="unit-tabs"></div>
+    <div id="unitTabs" class="unit-tabs"></div><div id="storageStatus" class="mini" style="margin-top:10px"></div>
   </div>
   <div class="card">
     <h3>編輯單元：<span id="currentUnitTitle"></span></h3>
@@ -141,18 +141,37 @@
 <section id="result" class="hidden"><div class="card result"><div style="font-size:72px">🏆</div><h1>Mission Complete!</h1>
 <div class="pet-box"><div class="pet" id="pet">🥚</div><h3 id="petName">你的冒險夥伴</h3><div class="progress pet-xp"><div id="petBar"></div></div><p id="petText" class="mini"></p></div><div class="score"><span id="finalScore">0</span> ⭐</div><p id="finalText"></p><div class="row" style="justify-content:center"><button class="btn primary" onclick="startGame()">再玩一次</button><button class="btn yellow" onclick="show('home')">回首頁</button></div></div></section>
 </div><script>
+const safeStore={
+  memory:{},
+  available:true,
+  get(key){
+    try{return window.localStorage.getItem(key)}
+    catch(e){this.available=false;return this.memory[key]??null}
+  },
+  set(key,val){
+    this.memory[key]=String(val);
+    try{window.localStorage.setItem(key,String(val));return true}
+    catch(e){this.available=false;return false}
+  }
+};
+function updateStorageStatus(){
+  const el=document.getElementById('storageStatus');
+  if(!el)return;
+  el.textContent=safeStore.available?'✓ 本裝置儲存可用':'⚠️ 本裝置儲存目前不可用；本次操作只會暫存在此頁面';
+  el.style.color=safeStore.available?'var(--good)':'#b06a00';
+}
 const defaults=[{en:'hungry',zh:'飢餓的'},{en:'library',zh:'圖書館'},{en:'beautiful',zh:'漂亮的'},{en:'elephant',zh:'大象'},{en:'breakfast',zh:'早餐'},{en:'hospital',zh:'醫院'}];
 let units=null;
-try{units=JSON.parse(localStorage.getItem('wordAdventureUnits')||'null')}catch(e){units=null}
+try{units=JSON.parse(safeStore.get('wordAdventureUnits')||'null')}catch(e){units=null}
 if(!Array.isArray(units)||units.length===0){
   let legacy=null;
-  try{legacy=JSON.parse(localStorage.getItem('wordAdventureWords')||'null')}catch(e){legacy=null}
+  try{legacy=JSON.parse(safeStore.get('wordAdventureWords')||'null')}catch(e){legacy=null}
   units=[{id:'unit-'+Date.now(),name:'Unit 1',words:Array.isArray(legacy)&&legacy.length?legacy:defaults,draftWords:[]}];
-  localStorage.setItem('wordAdventureUnits',JSON.stringify(units));
+  safeStore.set('wordAdventureUnits',JSON.stringify(units));
 }
-let currentUnitId=localStorage.getItem('wordAdventureCurrentUnit');
+let currentUnitId=safeStore.get('wordAdventureCurrentUnit');
 if(!currentUnitId||!units.some(u=>u.id===currentUnitId)) currentUnitId=units[0].id;
-let words=(units.find(u=>u.id===currentUnitId)||units[0]).words||[];let quizQuestions=[],qi=0,score=0,wrongWords=[],selectedMatch=null,matched=0,reviewList=[],ri=0,reviewScore=0,modalNext=null,animWords=[],ai=0,animRoundScore=0,moveTimer=null,combo=0,catchWords=[],ci=0,catchRoundScore=0,catchTimer=null,basketX=50,selectedStages=[],currentStageIndex=0,theaterWords=[],ti=0,theaterRoundScore=0,petXP=Number(localStorage.getItem('wordAdventurePetXP')||0),catchResolved=false,catchLoop=null;
+let words=(units.find(u=>u.id===currentUnitId)||units[0]).words||[];let quizQuestions=[],qi=0,score=0,wrongWords=[],selectedMatch=null,matched=0,reviewList=[],ri=0,reviewScore=0,modalNext=null,animWords=[],ai=0,animRoundScore=0,moveTimer=null,combo=0,catchWords=[],ci=0,catchRoundScore=0,catchTimer=null,basketX=50,selectedStages=[],currentStageIndex=0,theaterWords=[],ti=0,theaterRoundScore=0,petXP=Number(safeStore.get('wordAdventurePetXP')||0),catchResolved=false,catchLoop=null;
 function show(id){document.querySelectorAll('section').forEach(s=>s.classList.add('hidden'));document.getElementById(id).classList.remove('hidden');if(id==='teacher')renderTeacher();if(id==='student')renderStudentUnits()}
 
 const zhDictionary={
@@ -250,15 +269,16 @@ function addWord(en='',zh=''){
 function persistUnits(){
   try{
     const payload=JSON.stringify(units);
-    const old=localStorage.getItem('wordAdventureUnits');
-    if(old) localStorage.setItem('wordAdventureUnitsBackup',old);
-    localStorage.setItem('wordAdventureUnits',payload);
-    localStorage.setItem('wordAdventureCurrentUnit',currentUnitId);
-    localStorage.setItem('wordAdventureUnitsSavedAt',new Date().toISOString());
-    return true;
+    const old=safeStore.get('wordAdventureUnits');
+    if(old)safeStore.set('wordAdventureUnitsBackup',old);
+    const ok1=safeStore.set('wordAdventureUnits',payload);
+    const ok2=safeStore.set('wordAdventureCurrentUnit',currentUnitId||'');
+    safeStore.set('wordAdventureUnitsSavedAt',new Date().toISOString());
+    updateStorageStatus();
+    return ok1&&ok2;
   }catch(err){
     console.error('儲存失敗',err);
-    alert('資料儲存失敗，請確認瀏覽器沒有使用私密模式，且允許網站儲存資料。');
+    updateStorageStatus();
     return false;
   }
 }
@@ -318,8 +338,7 @@ function createUnit(){
   const id='unit-'+Date.now()+'-'+Math.random().toString(36).slice(2,7);
   units.push({id:id,name:name,words:[],draftWords:[]});
   currentUnitId=id;
-  const ok=persistUnits();
-  if(!ok)return;
+  persistUnits();
   input.value='';
   renderTeacher();
   const msg=document.getElementById('saveMsg');
@@ -674,6 +693,11 @@ function updatePet(){
 function finish(){show('result');document.getElementById('finalScore').textContent=score;const wrong=[...new Map(wrongWords.map(w=>[w.en,w])).values()];document.getElementById('finalText').textContent=wrong.length?`完成 ${quizQuestions.length} 題挑戰！今天最需要再複習：${wrong.map(w=>w.en).join('、')}`:`太厲害了！第一關全部答對，共完成 ${quizQuestions.length} 題挑戰。`;localStorage.setItem('wordAdventureLastScore',String(score));updatePet()}window.addEventListener('pagehide',()=>{try{saveCurrentFormSilently(false)}catch(e){}});
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'){try{saveCurrentFormSilently(false)}catch(e){}}});
 document.addEventListener('DOMContentLoaded',()=>{
+ const createBtn=document.getElementById('createUnitBtn');
+ if(createBtn){
+   createBtn.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();createUnit()});
+ }
+ updateStorageStatus();
  const b=document.getElementById('catchSkipBtn');
  if(b){
    let skipping=false;
