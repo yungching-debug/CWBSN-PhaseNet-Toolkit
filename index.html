@@ -113,7 +113,7 @@
 
 <section id="catchGame" class="hidden">
  <div class="topbar"><h2>🧺 第四關：接住正確單字</h2><span class="pill">⭐ <span id="catchScore">0</span></span></div>
- <div class="skip-wrap"><button class="btn skip-btn" onclick="skipStage('catchGame')">⏭ 跳過此關</button></div>
+ <div class="skip-wrap" style="position:relative;z-index:20"><button type="button" class="btn skip-btn" onclick="skipStage('catchGame')">⏭ 跳過此關</button></div>
  <div class="card">
   <div class="game-prompt" id="catchPrompt"></div>
   <div class="catch-area" id="catchArea">
@@ -345,63 +345,86 @@ function renderCatchRound(){
  clearTimeout(catchTimer);
  if(catchLoop)cancelAnimationFrame(catchLoop);
  catchResolved=false;
+
  const w=catchWords[ci];
- document.getElementById('catchPrompt').textContent='🧺 移動籃子，再點一下落進籃子的「'+w.zh+'」！';
- document.getElementById('catchFeedback').textContent='單字進入籃子範圍時，直接點單字即可接住。';
  const area=document.getElementById('catchArea');
+ document.getElementById('catchPrompt').textContent='🧺 接住「'+w.zh+'」！';
+ document.getElementById('catchFeedback').textContent='移動籃子，碰到單字就會自動判定。';
  area.querySelectorAll('.falling-word').forEach(x=>x.remove());
 
  const options=shuffle([w,...shuffle(words.filter(x=>x.en!==w.en)).slice(0,2)]);
  options.forEach((x,i)=>{
-   const d=document.createElement('button');
+   const d=document.createElement('div');
    d.className='falling-word';
    d.textContent=x.en;
    d.dataset.correct=x.en===w.en?'1':'0';
+   d.dataset.finished='0';
    d.style.left=(10+i*34+Math.random()*5)+'%';
-   d.style.animationDuration=(5.5+Math.random()*1.2)+'s';
-   d.style.border='0';
-   d.style.cursor='pointer';
+   d.style.animationDuration=(5.5+Math.random()*1.1)+'s';
    d.style.zIndex='8';
-   d.onclick=(e)=>{e.stopPropagation();tryCatchWord(d,w)};
    area.appendChild(d);
  });
 
- // Give the round enough time for the slowest word to finish.
- catchTimer=setTimeout(()=>resolveCatch(false,w,null,true),7200);
-}
+ function collisionLoop(){
+   if(catchResolved)return;
+   const basket=document.getElementById('basket');
+   const br=basket.getBoundingClientRect();
+   const areaRect=area.getBoundingClientRect();
+   const items=[...area.querySelectorAll('.falling-word')];
 
-function tryCatchWord(item,w){
- if(catchResolved)return;
- const basket=document.getElementById('basket');
- const br=basket.getBoundingClientRect(),r=item.getBoundingClientRect();
- // Generous catch zone for touch screens: horizontal overlap plus word near basket vertically.
- const horizontal=r.left<br.right+24&&r.right>br.left-24;
- const vertical=r.bottom>=br.top-65&&r.top<=br.bottom+25;
- const f=document.getElementById('catchFeedback');
- if(!horizontal||!vertical){
-   f.className='feedback badtxt';
-   f.textContent='再靠近籃子一點再接！';
-   return;
+   for(const item of items){
+     if(item.dataset.finished==='1')continue;
+     const r=item.getBoundingClientRect();
+
+     const horizontal=r.left<br.right&&r.right>br.left;
+     const vertical=r.bottom>=br.top&&r.top<=br.bottom;
+
+     if(horizontal&&vertical){
+       resolveCatch(item.dataset.correct==='1',w,item,false);
+       return;
+     }
+
+     if(r.top>=areaRect.bottom-4){
+       item.dataset.finished='1';
+       item.style.visibility='hidden';
+     }
+   }
+
+   if(items.length && items.every(x=>x.dataset.finished==='1')){
+     resolveCatch(false,w,null,true);
+     return;
+   }
+
+   catchLoop=requestAnimationFrame(collisionLoop);
  }
- resolveCatch(item.dataset.correct==='1',w,item,false);
+ catchLoop=requestAnimationFrame(collisionLoop);
+
+ // Safety timeout only; normal rounds resolve from collision / all words fallen.
+ catchTimer=setTimeout(()=>{
+   if(!catchResolved)resolveCatch(false,w,null,true);
+ },8500);
 }
 
 function resolveCatch(ok,w,item,missedAll=false){
  if(catchResolved)return;
  catchResolved=true;
  clearTimeout(catchTimer);
- if(catchLoop)cancelAnimationFrame(catchLoop);
- document.querySelectorAll('#catchArea .falling-word').forEach(x=>{x.style.animationPlayState='paused';x.disabled=true});
+ if(catchLoop){cancelAnimationFrame(catchLoop);catchLoop=null;}
+
+ document.querySelectorAll('#catchArea .falling-word').forEach(x=>x.style.animationPlayState='paused');
  const f=document.getElementById('catchFeedback');
  const next=()=>{ci++;if(ci<catchWords.length)renderCatchRound();else nextSelectedStage('catchGame')};
+
  if(ok){
    score+=15;catchRoundScore+=15;
    document.getElementById('catchScore').textContent=catchRoundScore;
-   f.className='feedback goodtxt';f.textContent='🎉 接到了！+15 ⭐';
+   f.className='feedback goodtxt';
+   f.textContent='🎉 接到了！+15 ⭐';
    if(item){item.style.transform='scale(1.2)';item.style.opacity='.25'}
    setTimeout(next,800);
  }else{
-   wrongWords.push(w);f.className='feedback badtxt';
+   wrongWords.push(w);
+   f.className='feedback badtxt';
    f.textContent=item?'哎呀！接錯單字了。':'正確單字掉下去了！';
    showWrongModal(w,next);
  }
@@ -409,8 +432,15 @@ function resolveCatch(ok,w,item,missedAll=false){
 function startReview(){reviewList=shuffle([...new Map(wrongWords.map(w=>[w.en,w])).values()]);ri=0;reviewScore=0;if(reviewList.length===0){nextSelectedStage('review');return}show('review');renderReview()}
 function renderReview(){const w=reviewList[ri];document.getElementById('reviewScore').textContent=reviewScore;document.getElementById('reviewQuestion').textContent=`「${w.zh}」的英文是哪一個？`;let distract=shuffle(words.filter(x=>x.en!==w.en)).slice(0,3).map(x=>x.en),opts=shuffle([w.en,...distract]),c=document.getElementById('reviewChoices');c.innerHTML='';opts.forEach(o=>{const b=document.createElement('button');b.className='choice';b.textContent=o;b.onclick=()=>{[...c.children].forEach(x=>x.disabled=true);const ok=o===w.en,f=document.getElementById('reviewFeedback');if(ok){score+=15;reviewScore+=15;f.textContent='🔥 Boss 擊破！+15 ⭐'}else{wrongWords.push(w);f.textContent='這題再記一次！';showWrongModal(w,()=>{ri++;if(ri<reviewList.length)renderReview();else nextSelectedStage('review')});return}setTimeout(()=>{ri++;if(ri<reviewList.length)renderReview();else finish()},650)};c.appendChild(b)})}
 function skipStage(stage){
- if(stage==='animGame')clearInterval(moveTimer);
- if(stage==='catchGame'){clearTimeout(catchTimer);if(catchLoop)cancelAnimationFrame(catchLoop);catchResolved=true;}
+ if(stage==='animGame'){
+   clearInterval(moveTimer);
+ }
+ if(stage==='catchGame'){
+   catchResolved=true;
+   clearTimeout(catchTimer);
+   if(catchLoop){cancelAnimationFrame(catchLoop);catchLoop=null;}
+   document.querySelectorAll('#catchArea .falling-word').forEach(x=>x.remove());
+ }
  nextSelectedStage(stage);
 }
 function updatePet(){
