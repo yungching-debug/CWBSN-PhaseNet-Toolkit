@@ -142,14 +142,17 @@
 <div class="pet-box"><div class="pet" id="pet">🥚</div><h3 id="petName">你的冒險夥伴</h3><div class="progress pet-xp"><div id="petBar"></div></div><p id="petText" class="mini"></p></div><div class="score"><span id="finalScore">0</span> ⭐</div><p id="finalText"></p><div class="row" style="justify-content:center"><button class="btn primary" onclick="startGame()">再玩一次</button><button class="btn yellow" onclick="show('home')">回首頁</button></div></div></section>
 </div><script>
 const defaults=[{en:'hungry',zh:'飢餓的'},{en:'library',zh:'圖書館'},{en:'beautiful',zh:'漂亮的'},{en:'elephant',zh:'大象'},{en:'breakfast',zh:'早餐'},{en:'hospital',zh:'醫院'}];
-let units=JSON.parse(localStorage.getItem('wordAdventureUnits')||'null');
-if(!units){
-  const legacy=JSON.parse(localStorage.getItem('wordAdventureWords')||'null');
-  units=[{id:'unit-'+Date.now(),name:'Unit 1',words:legacy||defaults}];
+let units=null;
+try{units=JSON.parse(localStorage.getItem('wordAdventureUnits')||'null')}catch(e){units=null}
+if(!Array.isArray(units)||units.length===0){
+  let legacy=null;
+  try{legacy=JSON.parse(localStorage.getItem('wordAdventureWords')||'null')}catch(e){legacy=null}
+  units=[{id:'unit-'+Date.now(),name:'Unit 1',words:Array.isArray(legacy)&&legacy.length?legacy:defaults,draftWords:[]}];
   localStorage.setItem('wordAdventureUnits',JSON.stringify(units));
 }
-let currentUnitId=localStorage.getItem('wordAdventureCurrentUnit')||units[0].id;
-let words=(units.find(u=>u.id===currentUnitId)||units[0]).words;let quizQuestions=[],qi=0,score=0,wrongWords=[],selectedMatch=null,matched=0,reviewList=[],ri=0,reviewScore=0,modalNext=null,animWords=[],ai=0,animRoundScore=0,moveTimer=null,combo=0,catchWords=[],ci=0,catchRoundScore=0,catchTimer=null,basketX=50,selectedStages=[],currentStageIndex=0,theaterWords=[],ti=0,theaterRoundScore=0,petXP=Number(localStorage.getItem('wordAdventurePetXP')||0),catchResolved=false,catchLoop=null;
+let currentUnitId=localStorage.getItem('wordAdventureCurrentUnit');
+if(!currentUnitId||!units.some(u=>u.id===currentUnitId)) currentUnitId=units[0].id;
+let words=(units.find(u=>u.id===currentUnitId)||units[0]).words||[];let quizQuestions=[],qi=0,score=0,wrongWords=[],selectedMatch=null,matched=0,reviewList=[],ri=0,reviewScore=0,modalNext=null,animWords=[],ai=0,animRoundScore=0,moveTimer=null,combo=0,catchWords=[],ci=0,catchRoundScore=0,catchTimer=null,basketX=50,selectedStages=[],currentStageIndex=0,theaterWords=[],ti=0,theaterRoundScore=0,petXP=Number(localStorage.getItem('wordAdventurePetXP')||0),catchResolved=false,catchLoop=null;
 function show(id){document.querySelectorAll('section').forEach(s=>s.classList.add('hidden'));document.getElementById(id).classList.remove('hidden');if(id==='teacher')renderTeacher();if(id==='student')renderStudentUnits()}
 
 const zhDictionary={
@@ -281,12 +284,21 @@ function saveCurrentFormSilently(showStatus=false){
   }
 }
 function createUnit(){
-  const input=document.getElementById('newUnitName');const name=input.value.trim();
-  if(!name){alert('請先輸入單元名稱。');return}
-  saveCurrentFormSilently();
-  const id='unit-'+Date.now();
-  units.push({id,name,words:[],draftWords:[]});
-  currentUnitId=id;persistUnits();input.value='';renderTeacher();
+  const input=document.getElementById('newUnitName');
+  if(!input){alert('找不到單元名稱輸入框，請重新整理頁面。');return}
+  const name=input.value.trim();
+  if(!name){alert('請先輸入單元名稱。');input.focus();return}
+  try{saveCurrentFormSilently(false)}catch(e){console.warn('建立單元前自動儲存略過',e)}
+  if(!Array.isArray(units))units=[];
+  const id='unit-'+Date.now()+'-'+Math.random().toString(36).slice(2,7);
+  units.push({id:id,name:name,words:[],draftWords:[]});
+  currentUnitId=id;
+  const ok=persistUnits();
+  if(!ok)return;
+  input.value='';
+  renderTeacher();
+  const msg=document.getElementById('saveMsg');
+  if(msg){msg.className='feedback goodtxt';msg.textContent='✓ 已建立單元「'+name+'」'}
 }
 function renameCurrentUnit(){
   const u=getCurrentUnit();const name=prompt('新的單元名稱：',u.name);
