@@ -113,7 +113,7 @@
 
 <section id="catchGame" class="hidden">
  <div class="topbar"><h2>🧺 第四關：接住正確單字</h2><span class="pill">⭐ <span id="catchScore">0</span></span></div>
- <div class="skip-wrap" style="position:relative;z-index:20"><button type="button" class="btn skip-btn" onclick="skipStage('catchGame')">⏭ 跳過此關</button></div>
+ <div class="skip-wrap" style="position:relative;z-index:9999;pointer-events:auto"><button type="button" id="catchSkipBtn" class="btn skip-btn" style="position:relative;z-index:10000;pointer-events:auto">⏭ 跳過此關</button></div>
  <div class="card">
   <div class="game-prompt" id="catchPrompt"></div>
   <div class="catch-area" id="catchArea">
@@ -431,16 +431,23 @@ function resolveCatch(ok,w,item,missedAll=false){
 }
 function startReview(){reviewList=shuffle([...new Map(wrongWords.map(w=>[w.en,w])).values()]);ri=0;reviewScore=0;if(reviewList.length===0){nextSelectedStage('review');return}show('review');renderReview()}
 function renderReview(){const w=reviewList[ri];document.getElementById('reviewScore').textContent=reviewScore;document.getElementById('reviewQuestion').textContent=`「${w.zh}」的英文是哪一個？`;let distract=shuffle(words.filter(x=>x.en!==w.en)).slice(0,3).map(x=>x.en),opts=shuffle([w.en,...distract]),c=document.getElementById('reviewChoices');c.innerHTML='';opts.forEach(o=>{const b=document.createElement('button');b.className='choice';b.textContent=o;b.onclick=()=>{[...c.children].forEach(x=>x.disabled=true);const ok=o===w.en,f=document.getElementById('reviewFeedback');if(ok){score+=15;reviewScore+=15;f.textContent='🔥 Boss 擊破！+15 ⭐'}else{wrongWords.push(w);f.textContent='這題再記一次！';showWrongModal(w,()=>{ri++;if(ri<reviewList.length)renderReview();else nextSelectedStage('review')});return}setTimeout(()=>{ri++;if(ri<reviewList.length)renderReview();else finish()},650)};c.appendChild(b)})}
+function skipCatchStage(e){
+ if(e){e.preventDefault();e.stopPropagation();}
+ catchResolved=true;
+ clearTimeout(catchTimer);
+ if(catchLoop){cancelAnimationFrame(catchLoop);catchLoop=null;}
+ const area=document.getElementById('catchArea');
+ if(area){
+   area.onpointerdown=null;
+   area.querySelectorAll('.falling-word').forEach(x=>x.remove());
+ }
+ nextSelectedStage('catchGame');
+}
 function skipStage(stage){
  if(stage==='animGame'){
    clearInterval(moveTimer);
  }
- if(stage==='catchGame'){
-   catchResolved=true;
-   clearTimeout(catchTimer);
-   if(catchLoop){cancelAnimationFrame(catchLoop);catchLoop=null;}
-   document.querySelectorAll('#catchArea .falling-word').forEach(x=>x.remove());
- }
+ if(stage==='catchGame'){skipCatchStage();return;}
  nextSelectedStage(stage);
 }
 function updatePet(){
@@ -453,7 +460,16 @@ function updatePet(){
  if(next){const pct=Math.min(100,((petXP-st.min)/(next.min-st.min))*100);document.getElementById('petBar').style.width=pct+'%';document.getElementById('petText').textContent='累積 '+petXP+' XP｜再 '+(next.min-petXP)+' XP 進化'}
  else{document.getElementById('petBar').style.width='100%';document.getElementById('petText').textContent='累積 '+petXP+' XP｜已達最高進化！'}
 }
-function finish(){show('result');document.getElementById('finalScore').textContent=score;const wrong=[...new Map(wrongWords.map(w=>[w.en,w])).values()];document.getElementById('finalText').textContent=wrong.length?`完成 ${quizQuestions.length} 題挑戰！今天最需要再複習：${wrong.map(w=>w.en).join('、')}`:`太厲害了！第一關全部答對，共完成 ${quizQuestions.length} 題挑戰。`;localStorage.setItem('wordAdventureLastScore',String(score));updatePet()}show('home');
+function finish(){show('result');document.getElementById('finalScore').textContent=score;const wrong=[...new Map(wrongWords.map(w=>[w.en,w])).values()];document.getElementById('finalText').textContent=wrong.length?`完成 ${quizQuestions.length} 題挑戰！今天最需要再複習：${wrong.map(w=>w.en).join('、')}`:`太厲害了！第一關全部答對，共完成 ${quizQuestions.length} 題挑戰。`;localStorage.setItem('wordAdventureLastScore',String(score));updatePet()}document.addEventListener('DOMContentLoaded',()=>{
+ const b=document.getElementById('catchSkipBtn');
+ if(b){
+   let skipping=false;
+   const go=e=>{if(skipping)return;skipping=true;skipCatchStage(e);setTimeout(()=>skipping=false,500)};
+   b.addEventListener('pointerup',go);
+   b.addEventListener('click',go);
+ }
+});
+show('home');
 </script>
 <div id="wrongModal" class="modal hidden">
   <div class="modal-box">
