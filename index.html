@@ -50,11 +50,11 @@
   <div class="card">
     <h3>☁️ 班級雲端同步</h3>
     <div class="row">
-      <input id="cloudClassName" placeholder="班級名稱，例如：五年三班">
+      <input id="cloudClassName" placeholder="自訂班級代碼，例如：承裕、五年三班">
       <button class="btn primary" type="button" onclick="createCloudClass()">建立雲端班級</button>
     </div>
     <div class="row" style="margin-top:10px">
-      <input id="teacherClassCode" maxlength="6" placeholder="6 位班級代碼">
+      <input id="teacherClassCode" maxlength="30" placeholder="中文班級代碼，例如：承裕">
       <input id="teacherAdminKey" placeholder="老師管理金鑰">
       <button class="btn" type="button" onclick="connectTeacherClass()">連接既有班級</button>
     </div>
@@ -94,9 +94,9 @@
 <section id="student" class="hidden">
   <div class="topbar"><h2>🎒 學生模式</h2><button class="btn" onclick="show('home')">回首頁</button></div>
   <div class="card">
-    <h2 style="text-align:center">輸入老師提供的班級代碼 ☁️</h2>
+    <h2 style="text-align:center">輸入老師提供的班級名稱／代碼 ☁️</h2>
     <div class="row" style="justify-content:center">
-      <input id="studentClassCode" maxlength="6" placeholder="例如：A1B2C3" style="max-width:220px;text-transform:uppercase">
+      <input id="studentClassCode" maxlength="30" placeholder="例如：承裕" style="max-width:220px">
       <button class="btn primary" type="button" onclick="loadStudentCloudClass()">載入班級</button>
     </div>
     <div id="cloudStudentStatus" class="feedback"></div>
@@ -209,7 +209,7 @@ async function createCloudClass(){
 }
 
 async function connectTeacherClass(){
- const code=(document.getElementById('teacherClassCode')?.value||'').trim().toUpperCase();
+ const code=(document.getElementById('teacherClassCode')?.value||'').trim();
  const key=(document.getElementById('teacherAdminKey')?.value||'').trim();
  const out=document.getElementById('cloudTeacherStatus');
  if(!code||!key){out.className='feedback badtxt';out.textContent='請輸入班級代碼與老師管理金鑰。';return}
@@ -300,9 +300,9 @@ async function syncAllLocalUnitsToCloud(){
 }
 
 async function loadStudentCloudClass(){
- const code=(document.getElementById('studentClassCode')?.value||'').trim().toUpperCase();
+ const code=(document.getElementById('studentClassCode')?.value||'').trim();
  const out=document.getElementById('cloudStudentStatus');
- if(!code){out.className='feedback badtxt';out.textContent='請輸入 6 位班級代碼。';return}
+ if(!code){out.className='feedback badtxt';out.textContent='請輸入老師提供的班級名稱／代碼。';return}
  out.className='feedback';out.textContent='正在下載老師的單字…';
  const {data,error}=await cloudDb.rpc('get_class_content',{p_class_code:code});
  if(error||!data){out.className='feedback badtxt';out.textContent='找不到這個班級，請確認代碼。';return}
