@@ -429,8 +429,86 @@ function resolveCatch(ok,w,item,missedAll=false){
    showWrongModal(w,next);
  }
 }
+
+function theaterScene(w){
+ const key=(w.en||'').toLowerCase();
+ const map={
+  hungry:['😋','🍔','肚子餓了，想吃東西！'],
+  library:['🧒','📚','去圖書館看書'],
+  beautiful:['🤩','🌸','看到漂亮的花'],
+  elephant:['🧒','🐘','看到一隻大象'],
+  breakfast:['🌅','🍳','早上吃早餐'],
+  hospital:['🤒','🏥','生病去醫院'],
+  angry:['🙂','😡','變得很生氣'],
+  sleepy:['🥱','😴','好想睡覺'],
+  run:['🧍','🏃','開始跑步'],
+  jump:['🧍','🤸','跳起來'],
+  rain:['☁️','🌧️','開始下雨'],
+  teacher:['🧒','👩‍🏫','在教室裡上課'],
+  student:['👩‍🏫','🧒','學生正在學習'],
+  school:['🧒','🏫','去學校上課'],
+  book:['🧒','📖','拿起一本書來讀'],
+  apple:['🧒','🍎','看到一顆蘋果'],
+  dog:['🧒','🐶','看到一隻狗'],
+  cat:['🧒','🐱','看到一隻貓'],
+  happy:['🙂','😄','感到很開心'],
+  sad:['🙂','😢','感到很難過']
+ };
+ return map[key]||['🧒','💭','根據中文提示想想看'];
+}
+function startTheater(){
+ if(!words||words.length<4){alert('此單元至少需要 4 個單字才能進行小劇場。');nextSelectedStage('theater');return}
+ show('theater');
+ theaterWords=shuffle(words).slice(0,Math.min(5,words.length));
+ ti=0;
+ theaterRoundScore=0;
+ document.getElementById('theaterScore').textContent='0';
+ renderTheater();
+}
+function renderTheater(){
+ if(ti>=theaterWords.length){nextSelectedStage('theater');return}
+ const w=theaterWords[ti],s=theaterScene(w),stage=document.getElementById('theaterStage');
+ stage.innerHTML=
+  '<div class="actor theater-scene" style="left:12%;bottom:58px">'+s[0]+'</div>'+
+  '<div class="prop theater-scene" style="right:15%;bottom:68px">'+s[1]+'</div>'+
+  '<div style="position:absolute;left:0;right:0;bottom:14px;text-align:center;font-size:20px;font-weight:900">'+s[2]+'</div>';
+ document.getElementById('theaterCaption').textContent='這個情境最符合哪個英文單字？';
+ const f=document.getElementById('theaterFeedback');
+ f.textContent='';
+ f.className='feedback';
+ const distract=shuffle(words.filter(x=>x.en!==w.en)).slice(0,3).map(x=>x.en);
+ const opts=shuffle([w.en,...distract]);
+ const box=document.getElementById('theaterChoices');
+ box.innerHTML='';
+ opts.forEach(o=>{
+  const b=document.createElement('button');
+  b.className='choice';
+  b.textContent=o;
+  b.onclick=()=>answerTheater(o===w.en,w);
+  box.appendChild(b);
+ });
+}
+function answerTheater(ok,w){
+ document.querySelectorAll('#theaterChoices button').forEach(b=>b.disabled=true);
+ const f=document.getElementById('theaterFeedback');
+ const next=()=>{ti++;if(ti<theaterWords.length)renderTheater();else nextSelectedStage('theater')};
+ if(ok){
+  score+=15;
+  theaterRoundScore+=15;
+  document.getElementById('theaterScore').textContent=theaterRoundScore;
+  f.className='feedback goodtxt';
+  f.textContent='🎬 答對了！+15 ⭐';
+  setTimeout(next,800);
+ }else{
+  wrongWords.push(w);
+  f.className='feedback badtxt';
+  f.textContent='這個情境再記一次！';
+  showWrongModal(w,next);
+ }
+}
+
 function startReview(){reviewList=shuffle([...new Map(wrongWords.map(w=>[w.en,w])).values()]);ri=0;reviewScore=0;if(reviewList.length===0){nextSelectedStage('review');return}show('review');renderReview()}
-function renderReview(){const w=reviewList[ri];document.getElementById('reviewScore').textContent=reviewScore;document.getElementById('reviewQuestion').textContent=`「${w.zh}」的英文是哪一個？`;let distract=shuffle(words.filter(x=>x.en!==w.en)).slice(0,3).map(x=>x.en),opts=shuffle([w.en,...distract]),c=document.getElementById('reviewChoices');c.innerHTML='';opts.forEach(o=>{const b=document.createElement('button');b.className='choice';b.textContent=o;b.onclick=()=>{[...c.children].forEach(x=>x.disabled=true);const ok=o===w.en,f=document.getElementById('reviewFeedback');if(ok){score+=15;reviewScore+=15;f.textContent='🔥 Boss 擊破！+15 ⭐'}else{wrongWords.push(w);f.textContent='這題再記一次！';showWrongModal(w,()=>{ri++;if(ri<reviewList.length)renderReview();else nextSelectedStage('review')});return}setTimeout(()=>{ri++;if(ri<reviewList.length)renderReview();else finish()},650)};c.appendChild(b)})}
+function renderReview(){const w=reviewList[ri];document.getElementById('reviewScore').textContent=reviewScore;document.getElementById('reviewQuestion').textContent=`「${w.zh}」的英文是哪一個？`;let distract=shuffle(words.filter(x=>x.en!==w.en)).slice(0,3).map(x=>x.en),opts=shuffle([w.en,...distract]),c=document.getElementById('reviewChoices');c.innerHTML='';opts.forEach(o=>{const b=document.createElement('button');b.className='choice';b.textContent=o;b.onclick=()=>{[...c.children].forEach(x=>x.disabled=true);const ok=o===w.en,f=document.getElementById('reviewFeedback');if(ok){score+=15;reviewScore+=15;f.textContent='🔥 Boss 擊破！+15 ⭐'}else{wrongWords.push(w);f.textContent='這題再記一次！';showWrongModal(w,()=>{ri++;if(ri<reviewList.length)renderReview();else nextSelectedStage('review')});return}setTimeout(()=>{ri++;if(ri<reviewList.length)renderReview();else nextSelectedStage('review')},650)};c.appendChild(b)})}
 function skipCatchStage(e){
  if(e){e.preventDefault();e.stopPropagation();}
  catchResolved=true;
