@@ -24,7 +24,16 @@
 .game-prompt{text-align:center;font-size:26px;font-weight:1000;margin-bottom:16px}
 .spark{position:absolute;font-size:28px;animation:spark .7s ease-out forwards;pointer-events:none}
 @keyframes spark{to{transform:translateY(-70px) scale(1.6);opacity:0}}
-.skip-btn{margin-left:auto;background:#fff3c4;color:#6d5600;border:2px solid #f0d76b}.skip-wrap{display:flex;justify-content:flex-end;margin:10px 0 14px}</style>
+.skip-btn{margin-left:auto;background:#fff3c4;color:#6d5600;border:2px solid #f0d76b}.skip-wrap{display:flex;justify-content:flex-end;margin:10px 0 14px}
+.cloud{position:absolute;font-size:58px;opacity:.8;pointer-events:none;animation:cloudDrift 12s ease-in-out infinite alternate}.cloud.c1{top:24px;left:5%}.cloud.c2{top:90px;right:8%;animation-delay:-4s}.sun{position:absolute;right:20px;top:15px;font-size:62px;animation:sunPulse 2.5s ease-in-out infinite}.hill{position:absolute;bottom:-25px;font-size:95px;white-space:nowrap;opacity:.9;pointer-events:none}.tiny-balloon{position:absolute;font-size:28px;opacity:.45;animation:tinyFloat 8s linear infinite}
+@keyframes cloudDrift{to{transform:translateX(35px)}}@keyframes sunPulse{50%{transform:scale(1.12) rotate(8deg)}}@keyframes tinyFloat{from{transform:translateY(360px)}to{transform:translateY(-100px)}}
+.catch-area{position:relative;height:420px;border-radius:24px;overflow:hidden;background:linear-gradient(#bfe8ff 0%,#edfaff 70%,#dff1c9 71%,#b9df91 100%);border:3px solid #d9e9f6;touch-action:none}
+.falling-word{position:absolute;top:-55px;padding:11px 16px;border-radius:16px;background:white;box-shadow:0 7px 18px rgba(0,0,0,.15);font-size:19px;font-weight:1000;animation:wordFall 5s linear forwards;z-index:3}
+@keyframes wordFall{to{top:350px;transform:rotate(5deg)}}
+.basket{position:absolute;bottom:14px;left:calc(50% - 55px);width:110px;height:58px;border-radius:12px 12px 30px 30px;background:#d99a50;border:5px solid #9b672f;z-index:5;text-align:center;font-size:34px;user-select:none;transition:left .08s linear}
+.catch-controls{display:flex;justify-content:center;gap:18px;margin-top:14px}.move-btn{font-size:28px;min-width:100px}
+.scenery{position:absolute;inset:0;pointer-events:none}.catch-tree{position:absolute;bottom:20px;font-size:64px;opacity:.75}.catch-tree.left{left:10px}.catch-tree.right{right:10px}
+</style>
 </head>
 <body><div class="wrap">
 <section id="home"><div class="hero"><div style="font-size:48px">🌎🚀</div><h1>Word Adventure</h1><p>單字大冒險｜把英文單字變成闖關遊戲</p></div><div class="role-grid"><button class="role" onclick="show('teacher')">👩‍🏫<br>我是老師</button><button class="role" onclick="show('student')">🎒<br>我是學生</button></div></section>
@@ -45,10 +54,24 @@
     <div class="feedback" id="animFeedback"></div>
   </div>
 </section>
+
+<section id="catchGame" class="hidden">
+ <div class="topbar"><h2>🧺 第四關：接住正確單字</h2><span class="pill">⭐ <span id="catchScore">0</span></span></div>
+ <div class="skip-wrap"><button class="btn skip-btn" onclick="skipStage('catchGame')">⏭ 跳過此關</button></div>
+ <div class="card">
+  <div class="game-prompt" id="catchPrompt"></div>
+  <div class="catch-area" id="catchArea">
+   <div class="scenery"><span class="catch-tree left">🌳</span><span class="catch-tree right">🌲</span></div>
+   <div class="basket" id="basket">🧺</div>
+  </div>
+  <div class="catch-controls"><button class="btn move-btn" onpointerdown="moveBasket(-1)">⬅️</button><button class="btn move-btn" onpointerdown="moveBasket(1)">➡️</button></div>
+  <div class="feedback" id="catchFeedback"></div>
+ </div>
+</section>
 <section id="review" class="hidden"><div class="topbar"><h2>🔥 Boss 關：錯題再挑戰</h2><span class="pill">⭐ <span id="reviewScore">0</span></span></div><div class="skip-wrap"><button class="btn skip-btn" onclick="skipStage('review')">⏭ 跳過此關</button></div><div class="card"><div class="question" id="reviewQuestion"></div><div class="choices" id="reviewChoices"></div><div class="feedback" id="reviewFeedback"></div></div></section>
 <section id="result" class="hidden"><div class="card result"><div style="font-size:72px">🏆</div><h1>Mission Complete!</h1><div class="score"><span id="finalScore">0</span> ⭐</div><p id="finalText"></p><div class="row" style="justify-content:center"><button class="btn primary" onclick="startGame()">再玩一次</button><button class="btn yellow" onclick="show('home')">回首頁</button></div></div></section>
 </div><script>
-const defaults=[{en:'hungry',zh:'飢餓的'},{en:'library',zh:'圖書館'},{en:'beautiful',zh:'漂亮的'},{en:'elephant',zh:'大象'},{en:'breakfast',zh:'早餐'},{en:'hospital',zh:'醫院'}];let words=JSON.parse(localStorage.getItem('wordAdventureWords')||'null')||defaults;let quizQuestions=[],qi=0,score=0,wrongWords=[],selectedMatch=null,matched=0,reviewList=[],ri=0,reviewScore=0,modalNext=null,animWords=[],ai=0,animRoundScore=0,moveTimer=null,combo=0;
+const defaults=[{en:'hungry',zh:'飢餓的'},{en:'library',zh:'圖書館'},{en:'beautiful',zh:'漂亮的'},{en:'elephant',zh:'大象'},{en:'breakfast',zh:'早餐'},{en:'hospital',zh:'醫院'}];let words=JSON.parse(localStorage.getItem('wordAdventureWords')||'null')||defaults;let quizQuestions=[],qi=0,score=0,wrongWords=[],selectedMatch=null,matched=0,reviewList=[],ri=0,reviewScore=0,modalNext=null,animWords=[],ai=0,animRoundScore=0,moveTimer=null,combo=0,catchWords=[],ci=0,catchRoundScore=0,catchTimer=null,basketX=50;
 function show(id){document.querySelectorAll('section').forEach(s=>s.classList.add('hidden'));document.getElementById(id).classList.remove('hidden');if(id==='teacher')renderTeacher();if(id==='student')document.getElementById('wordCountText').textContent=`今天共有 ${words.length} 個單字`}
 function addWord(en='',zh=''){const row=document.createElement('div');row.className='word-row';row.innerHTML=`<input placeholder="英文單字" value="${escapeHtml(en)}"><input placeholder="中文意思" value="${escapeHtml(zh)}"><button class="btn" onclick="this.parentElement.remove()">刪除</button>`;document.getElementById('wordList').appendChild(row)}
 function escapeHtml(s){return s.replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
@@ -95,7 +118,7 @@ function renderAnimRound(){
   const w=animWords[ai];
   document.getElementById('animPrompt').textContent='🎯 戳破「'+w.zh+'」的英文氣球！';
   document.getElementById('animFeedback').innerHTML='<div class="combo">'+(combo>1?'🔥 COMBO × '+combo:'')+'</div>';
-  const area=document.getElementById('gameArea');area.innerHTML='';
+  const area=document.getElementById('gameArea');area.innerHTML='<div class="sun">☀️</div><div class="cloud c1">☁️</div><div class="cloud c2">☁️</div><div class="tiny-balloon" style="left:8%;animation-delay:-2s">🎈</div><div class="tiny-balloon" style="right:10%;animation-delay:-5s">🎈</div><div class="hill">🌳🌲🌳🌲🌳🌲🌳🌲</div>';
   let opts=shuffle([w,...shuffle(words.filter(x=>x.en!==w.en)).slice(0,3)]);
   opts.forEach((x,idx)=>{
     const b=document.createElement('button');
@@ -111,7 +134,7 @@ function renderAnimRound(){
 function answerAnim(ok,w,btn){
   [...document.querySelectorAll('#gameArea .target')].forEach(b=>b.disabled=true);
   const f=document.getElementById('animFeedback');
-  const next=()=>{ai++;if(ai<animWords.length)renderAnimRound();else startReview()};
+  const next=()=>{ai++;if(ai<animWords.length)renderAnimRound();else startCatchGame()};
   if(ok){
     combo++;score+=15;animRoundScore+=15;
     document.getElementById('animScore').textContent=animRoundScore;
@@ -126,6 +149,43 @@ function answerAnim(ok,w,btn){
     f.className='feedback badtxt';f.textContent='💥 哎呀！戳錯氣球了。';
     showWrongModal(w,next);
   }
+}
+
+function startCatchGame(){
+ show('catchGame');catchWords=shuffle(words).slice(0,Math.min(5,words.length));ci=0;catchRoundScore=0;basketX=50;
+ document.getElementById('catchScore').textContent='0';renderCatchRound();
+}
+function moveBasket(dir){
+ basketX=Math.max(8,Math.min(92,basketX+dir*14));
+ const b=document.getElementById('basket');b.style.left='calc('+basketX+'% - 55px)';
+}
+function renderCatchRound(){
+ clearTimeout(catchTimer);
+ const w=catchWords[ci];document.getElementById('catchPrompt').textContent='🧺 接住「'+w.zh+'」！';
+ document.getElementById('catchFeedback').textContent='';
+ const area=document.getElementById('catchArea');
+ area.querySelectorAll('.falling-word').forEach(x=>x.remove());
+ const options=shuffle([w,...shuffle(words.filter(x=>x.en!==w.en)).slice(0,2)]);
+ options.forEach((x,i)=>{
+   const d=document.createElement('div');d.className='falling-word';d.textContent=x.en;d.dataset.correct=x.en===w.en?'1':'0';
+   d.style.left=(12+i*34+Math.random()*7)+'%';d.style.animationDuration=(4.2+Math.random()*1.2)+'s';area.appendChild(d);
+ });
+ catchTimer=setTimeout(()=>checkCatch(w),4300);
+}
+function checkCatch(w){
+ const basket=document.getElementById('basket'),br=basket.getBoundingClientRect();
+ const items=[...document.querySelectorAll('#catchArea .falling-word')];
+ let caught=items.find(x=>{const r=x.getBoundingClientRect();return r.bottom>=br.top&&r.left<br.right&&r.right>br.left});
+ items.forEach(x=>x.style.animationPlayState='paused');
+ const next=()=>{ci++;if(ci<catchWords.length)renderCatchRound();else startReview()};
+ if(caught&&caught.dataset.correct==='1'){
+   score+=15;catchRoundScore+=15;document.getElementById('catchScore').textContent=catchRoundScore;
+   document.getElementById('catchFeedback').className='feedback goodtxt';document.getElementById('catchFeedback').textContent='🎉 接到了！+15 ⭐';setTimeout(next,800);
+ }else{
+   wrongWords.push(w);document.getElementById('catchFeedback').className='feedback badtxt';
+   document.getElementById('catchFeedback').textContent=caught?'哎呀！接錯單字了。':'單字掉下去了！';
+   showWrongModal(w,next);
+ }
 }
 function startReview(){reviewList=shuffle([...new Map(wrongWords.map(w=>[w.en,w])).values()]);ri=0;reviewScore=0;if(reviewList.length===0){finish();return}show('review');renderReview()}
 function renderReview(){const w=reviewList[ri];document.getElementById('reviewScore').textContent=reviewScore;document.getElementById('reviewQuestion').textContent=`「${w.zh}」的英文是哪一個？`;let distract=shuffle(words.filter(x=>x.en!==w.en)).slice(0,3).map(x=>x.en),opts=shuffle([w.en,...distract]),c=document.getElementById('reviewChoices');c.innerHTML='';opts.forEach(o=>{const b=document.createElement('button');b.className='choice';b.textContent=o;b.onclick=()=>{[...c.children].forEach(x=>x.disabled=true);const ok=o===w.en,f=document.getElementById('reviewFeedback');if(ok){score+=15;reviewScore+=15;f.textContent='🔥 Boss 擊破！+15 ⭐'}else{wrongWords.push(w);f.textContent='這題再記一次！';showWrongModal(w,()=>{ri++;if(ri<reviewList.length)renderReview();else finish()});return}setTimeout(()=>{ri++;if(ri<reviewList.length)renderReview();else finish()},650)};c.appendChild(b)})}
@@ -142,6 +202,11 @@ function skipStage(stage){
   }
   if(stage==='animGame'){
     clearInterval(moveTimer);
+    startCatchGame();
+    return;
+  }
+  if(stage==='catchGame'){
+    clearTimeout(catchTimer);
     startReview();
     return;
   }
