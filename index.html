@@ -58,7 +58,10 @@
       <input id="teacherAdminKey" placeholder="老師管理金鑰">
       <button class="btn" type="button" onclick="connectTeacherClass()">連接既有班級</button>
     </div>
-    <div id="cloudTeacherStatus" class="feedback"></div>
+    <div class="row" style="margin-top:10px">
+  <button class="btn primary" type="button" onclick="backupLocalUnitsToCloud()">☁️ 備份本裝置所有單元</button>
+</div>
+<div id="cloudTeacherStatus" class="feedback"></div>
     <p class="mini">建立班級後請保存「班級代碼」與「老師管理金鑰」。學生只需要班級代碼。</p>
   </div>
   <div class="card">
@@ -225,6 +228,37 @@ async function cloudSaveCurrentUnit(){
  u.cloudId=data.unit_id;persistUnits();
  if(out){out.className='feedback goodtxt';out.textContent='☁️ 已同步到班級 '+cloudClassCode}
  return true;
+}
+
+async function backupLocalUnitsToCloud(){
+ const out=document.getElementById('cloudTeacherStatus');
+ if(!cloudClassCode||!cloudAdminKey){
+   out.className='feedback badtxt';
+   out.textContent='請先建立雲端班級，或輸入班級代碼＋老師管理金鑰連接既有班級。';
+   return;
+ }
+ try{saveCurrentFormSilently(false)}catch(e){}
+ const localUnits=(units||[]).filter(u=>u&&u.name);
+ if(!localUnits.length){out.className='feedback badtxt';out.textContent='本裝置目前沒有可備份的單元。';return}
+ out.className='feedback';out.textContent='☁️ 正在備份 '+localUnits.length+' 個單元…';
+ let saved=0,failed=0,totalWords=0;
+ for(const u of localUnits){
+   const payload=(u.draftWords&&u.draftWords.length?u.draftWords:u.words||[]).filter(w=>w&&w.en&&w.zh);
+   const {data,error}=await cloudDb.rpc('save_unit',{
+     p_class_code:cloudClassCode,p_admin_key:cloudAdminKey,
+     p_unit_id:u.cloudId||null,p_name:u.name,p_words:payload
+   });
+   if(error){failed++;console.error('backup failed',u.name,error)}
+   else{u.cloudId=data.unit_id;saved++;totalWords+=Number(data.saved_words||0)}
+ }
+ persistUnits();
+ if(failed===0){
+   out.className='feedback goodtxt';
+   out.innerHTML='✅ 雲端備份完成！<br>已備份 <b>'+saved+'</b> 個單元、<b>'+totalWords+'</b> 個單字到班級 <b>'+escapeHtml(cloudClassCode)+'</b>。';
+ }else{
+   out.className='feedback badtxt';
+   out.textContent='部分備份失敗：成功 '+saved+' 個，失敗 '+failed+' 個。請不要清除本裝置資料，稍後再試。';
+ }
 }
 
 async function syncAllLocalUnitsToCloud(){
