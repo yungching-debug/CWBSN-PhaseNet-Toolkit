@@ -170,6 +170,31 @@ const zhDictionary={
  one:'一',two:'二',three:'三',four:'四',five:'五',six:'六',seven:'七',eight:'八',nine:'九',ten:'十'
 };
 
+
+function escapeHtml(s){
+ return String(s??'').replace(/[&<>"']/g,m=>({
+  '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'
+ }[m]));
+}
+
+function getCurrentUnit(){
+ if(!Array.isArray(units)||units.length===0){
+  const fresh={id:'unit-'+Date.now(),name:'Unit 1',words:[],draftWords:[]};
+  units=[fresh];
+  currentUnitId=fresh.id;
+  try{persistUnits()}catch(e){}
+  return fresh;
+ }
+ let u=units.find(x=>x&&x.id===currentUnitId);
+ if(!u){
+  u=units[0];
+  currentUnitId=u.id;
+ }
+ if(!Array.isArray(u.words))u.words=[];
+ if(!Array.isArray(u.draftWords))u.draftWords=[];
+ return u;
+}
+
 function suggestZh(en){
  const key=(en||'').trim().toLowerCase();
  return zhDictionary[key]||'';
