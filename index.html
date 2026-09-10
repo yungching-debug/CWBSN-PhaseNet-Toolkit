@@ -48,6 +48,20 @@
 <section id="teacher" class="hidden">
   <div class="topbar"><h2>👩‍🏫 老師模式</h2><button class="btn" onclick="show('home')">回首頁</button></div>
   <div class="card">
+    <h3>☁️ 班級雲端同步</h3>
+    <div class="row">
+      <input id="cloudClassName" placeholder="班級名稱，例如：五年三班">
+      <button class="btn primary" type="button" onclick="createCloudClass()">建立雲端班級</button>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <input id="teacherClassCode" maxlength="6" placeholder="6 位班級代碼">
+      <input id="teacherAdminKey" placeholder="老師管理金鑰">
+      <button class="btn" type="button" onclick="connectTeacherClass()">連接既有班級</button>
+    </div>
+    <div id="cloudTeacherStatus" class="feedback"></div>
+    <p class="mini">建立班級後請保存「班級代碼」與「老師管理金鑰」。學生只需要班級代碼。</p>
+  </div>
+  <div class="card">
     <h3>單元管理</h3>
     <div class="unit-toolbar">
       <input id="newUnitName" placeholder="例如：Unit 1、動物、學校生活" style="max-width:320px">
@@ -76,7 +90,15 @@
 <section id="student" class="hidden">
   <div class="topbar"><h2>🎒 學生模式</h2><button class="btn" onclick="show('home')">回首頁</button></div>
   <div class="card">
-    <h2 style="text-align:center">先選擇想挑戰的單元 📚</h2>
+    <h2 style="text-align:center">輸入老師提供的班級代碼 ☁️</h2>
+    <div class="row" style="justify-content:center">
+      <input id="studentClassCode" maxlength="6" placeholder="例如：A1B2C3" style="max-width:220px;text-transform:uppercase">
+      <button class="btn primary" type="button" onclick="loadStudentCloudClass()">載入班級</button>
+    </div>
+    <div id="cloudStudentStatus" class="feedback"></div>
+  </div>
+  <div class="card">
+    <h2 style="text-align:center">選擇想挑戰的單元 📚</h2>
     <div id="studentUnitGrid" class="unit-select-grid"></div>
   </div>
 </section>
@@ -140,7 +162,8 @@
 <section id="review" class="hidden"><div class="topbar"><h2>🔥 Boss 關：錯題再挑戰</h2><span class="pill">⭐ <span id="reviewScore">0</span></span></div><div class="skip-wrap"><button class="btn skip-btn" onclick="skipStage('review')">⏭ 跳過此關</button></div><div class="card"><div class="question" id="reviewQuestion"></div><div class="choices" id="reviewChoices"></div><div class="feedback" id="reviewFeedback"></div></div></section>
 <section id="result" class="hidden"><div class="card result"><div style="font-size:72px">🏆</div><h1>Mission Complete!</h1>
 <div class="pet-box"><div class="pet" id="pet">🥚</div><h3 id="petName">你的冒險夥伴</h3><div class="progress pet-xp"><div id="petBar"></div></div><p id="petText" class="mini"></p></div><div class="score"><span id="finalScore">0</span> ⭐</div><p id="finalText"></p><div class="row" style="justify-content:center"><button class="btn primary" onclick="startGame()">再玩一次</button><button class="btn yellow" onclick="show('home')">回首頁</button></div></div></section>
-</div><script>
+</div><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
 const safeStore={
   memory:{},
   available:true,
@@ -160,6 +183,75 @@ function updateStorageStatus(){
   el.textContent=safeStore.available?'✓ 本裝置儲存可用':'⚠️ 本裝置儲存目前不可用；本次操作只會暫存在此頁面';
   el.style.color=safeStore.available?'var(--good)':'#b06a00';
 }
+
+const SUPABASE_URL='https://njwcvpyffgkolrymfhtj.supabase.co';
+const SUPABASE_PUBLISHABLE_KEY='sb_publishable_gCTPQ_u_zffvjjhfj-pTEA_jj3tabD1';
+const cloudDb=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
+let cloudClassCode=safeStore.get('wordAdventureCloudClassCode')||'';
+let cloudAdminKey=safeStore.get('wordAdventureCloudAdminKey')||'';
+
+async function createCloudClass(){
+ const name=(document.getElementById('cloudClassName')?.value||'').trim();
+ const out=document.getElementById('cloudTeacherStatus');
+ if(!name){out.className='feedback badtxt';out.textContent='請先輸入班級名稱。';return}
+ out.className='feedback';out.textContent='正在建立雲端班級…';
+ const {data,error}=await cloudDb.rpc('create_class',{p_name:name});
+ if(error){out.className='feedback badtxt';out.textContent='建立失敗：'+error.message;return}
+ cloudClassCode=data.class_code;cloudAdminKey=data.admin_key;
+ safeStore.set('wordAdventureCloudClassCode',cloudClassCode);safeStore.set('wordAdventureCloudAdminKey',cloudAdminKey);
+ document.getElementById('teacherClassCode').value=cloudClassCode;document.getElementById('teacherAdminKey').value=cloudAdminKey;
+ out.className='feedback goodtxt';out.innerHTML='☁️ 建立成功！班級代碼：<b>'+escapeHtml(cloudClassCode)+'</b><br>老師管理金鑰：<b style="word-break:break-all">'+escapeHtml(cloudAdminKey)+'</b><br>請妥善保存管理金鑰。';
+ await syncAllLocalUnitsToCloud();
+}
+
+async function connectTeacherClass(){
+ const code=(document.getElementById('teacherClassCode')?.value||'').trim().toUpperCase();
+ const key=(document.getElementById('teacherAdminKey')?.value||'').trim();
+ const out=document.getElementById('cloudTeacherStatus');
+ if(!code||!key){out.className='feedback badtxt';out.textContent='請輸入班級代碼與老師管理金鑰。';return}
+ const {data,error}=await cloudDb.rpc('get_class_content',{p_class_code:code});
+ if(error||!data){out.className='feedback badtxt';out.textContent='找不到此班級代碼。';return}
+ cloudClassCode=code;cloudAdminKey=key;safeStore.set('wordAdventureCloudClassCode',code);safeStore.set('wordAdventureCloudAdminKey',key);
+ out.className='feedback goodtxt';out.textContent='☁️ 已連接「'+data.class_name+'」。之後儲存單元會同步到雲端。';
+}
+
+async function cloudSaveCurrentUnit(){
+ if(!cloudClassCode||!cloudAdminKey)return true;
+ const u=getCurrentUnit();
+ const all=collectCurrentFormWords().filter(w=>w.en&&w.zh);
+ const {data,error}=await cloudDb.rpc('save_unit',{p_class_code:cloudClassCode,p_admin_key:cloudAdminKey,p_unit_id:u.cloudId||null,p_name:u.name,p_words:all});
+ const out=document.getElementById('cloudTeacherStatus');
+ if(error){if(out){out.className='feedback badtxt';out.textContent='☁️ 雲端同步失敗：'+error.message}return false}
+ u.cloudId=data.unit_id;persistUnits();
+ if(out){out.className='feedback goodtxt';out.textContent='☁️ 已同步到班級 '+cloudClassCode}
+ return true;
+}
+
+async function syncAllLocalUnitsToCloud(){
+ if(!cloudClassCode||!cloudAdminKey)return;
+ for(const u of units){
+  const payload=(u.draftWords&&u.draftWords.length?u.draftWords:u.words||[]).filter(w=>w.en&&w.zh);
+  const {data,error}=await cloudDb.rpc('save_unit',{p_class_code:cloudClassCode,p_admin_key:cloudAdminKey,p_unit_id:u.cloudId||null,p_name:u.name,p_words:payload});
+  if(!error&&data)u.cloudId=data.unit_id;
+ }
+ persistUnits();
+}
+
+async function loadStudentCloudClass(){
+ const code=(document.getElementById('studentClassCode')?.value||'').trim().toUpperCase();
+ const out=document.getElementById('cloudStudentStatus');
+ if(!code){out.className='feedback badtxt';out.textContent='請輸入 6 位班級代碼。';return}
+ out.className='feedback';out.textContent='正在下載老師的單字…';
+ const {data,error}=await cloudDb.rpc('get_class_content',{p_class_code:code});
+ if(error||!data){out.className='feedback badtxt';out.textContent='找不到這個班級，請確認代碼。';return}
+ units=(data.units||[]).map(u=>({id:'cloud-'+u.id,cloudId:u.id,name:u.name,words:(u.words||[]).map(w=>({en:w.en,zh:w.zh})),draftWords:[]}));
+ if(!units.length){out.className='feedback badtxt';out.textContent='這個班級目前還沒有單元。';return}
+ currentUnitId=units[0].id;words=units[0].words;
+ safeStore.set('wordAdventureStudentClassCode',code);
+ out.className='feedback goodtxt';out.textContent='☁️ 已載入「'+data.class_name+'」';
+ renderStudentUnits();
+}
+
 const defaults=[{en:'hungry',zh:'飢餓的'},{en:'library',zh:'圖書館'},{en:'beautiful',zh:'漂亮的'},{en:'elephant',zh:'大象'},{en:'breakfast',zh:'早餐'},{en:'hospital',zh:'醫院'}];
 let units=null;
 try{units=JSON.parse(safeStore.get('wordAdventureUnits')||'null')}catch(e){units=null}
@@ -309,6 +401,7 @@ function renderUnitTabs(){
   });
 }
 function renderTeacher(){
+ setTimeout(()=>{const a=document.getElementById('teacherClassCode'),b=document.getElementById('teacherAdminKey');if(a)a.value=cloudClassCode;if(b)b.value=cloudAdminKey},0);
   const unit=getCurrentUnit();words=unit.words||[];
   document.getElementById('currentUnitTitle').textContent=unit.name;
   renderUnitTabs();
@@ -316,6 +409,7 @@ function renderTeacher(){
   const source=(unit.draftWords&&unit.draftWords.length)?unit.draftWords:words;
   source.forEach(w=>addWord(w.en||'',w.zh||''));
   renderTable();
+  cloudSaveCurrentUnit();
 }
 function collectCurrentFormWords(){
   const rows=[...document.querySelectorAll('#wordList .word-row')];
