@@ -59,7 +59,7 @@
   </div>
   <div class="card">
     <h3>編輯單元：<span id="currentUnitTitle"></span></h3>
-    <p class="mini">每個單元可保存不同的英文單字與中文意思，至少 4 組。</p>
+    <p class="mini">每個單元可保存不同的英文單字與中文意思，至少 4 組。輸入內容會自動儲存在本裝置。</p>
     <div id="wordList"></div>
     <div class="row">
       <button class="btn" onclick="addWord()">＋ 新增單字</button>
@@ -181,6 +181,7 @@ function handleEnglishInput(input){
  if(suggestion){
    if(!zhInput.dataset.userEdited || zhInput.dataset.userEdited==='false'){
      zhInput.value=suggestion;
+     scheduleAutoSave();
    }
    if(hint){
      hint.textContent='💡 建議中文：'+suggestion+'（可自行修改）';
@@ -207,10 +208,10 @@ function addWord(en='',zh=''){
   const del=row.querySelector('button');
 
   zhInput.dataset.userEdited=zh?'true':'false';
-  zhInput.addEventListener('input',()=>{zhInput.dataset.userEdited='true'});
-  enInput.addEventListener('input',()=>handleEnglishInput(enInput));
+  zhInput.addEventListener('input',()=>{zhInput.dataset.userEdited='true';scheduleAutoSave()});
+  enInput.addEventListener('input',()=>{handleEnglishInput(enInput);scheduleAutoSave()});
   enInput.addEventListener('blur',()=>handleEnglishInput(enInput));
-  del.addEventListener('click',()=>wrap.remove());
+  del.addEventListener('click',()=>{wrap.remove();scheduleAutoSave()});
 
   if(en&&!zh)handleEnglishInput(enInput);
   else if(en&&zh){
@@ -219,8 +220,19 @@ function addWord(en='',zh=''){
   }
 }
 function persistUnits(){
-  localStorage.setItem('wordAdventureUnits',JSON.stringify(units));
-  localStorage.setItem('wordAdventureCurrentUnit',currentUnitId);
+  try{
+    const payload=JSON.stringify(units);
+    const old=localStorage.getItem('wordAdventureUnits');
+    if(old) localStorage.setItem('wordAdventureUnitsBackup',old);
+    localStorage.setItem('wordAdventureUnits',payload);
+    localStorage.setItem('wordAdventureCurrentUnit',currentUnitId);
+    localStorage.setItem('wordAdventureUnitsSavedAt',new Date().toISOString());
+    return true;
+  }catch(err){
+    console.error('儲存失敗',err);
+    alert('資料儲存失敗，請確認瀏覽器沒有使用私密模式，且允許網站儲存資料。');
+    return false;
+  }
 }
 function renderUnitTabs(){
   const box=document.getElementById('unitTabs');box.innerHTML='';
@@ -231,19 +243,41 @@ function renderUnitTabs(){
   });
 }
 function renderTeacher(){
-  const unit=getCurrentUnit();words=unit.words;
+  const unit=getCurrentUnit();words=unit.words||[];
   document.getElementById('currentUnitTitle').textContent=unit.name;
   renderUnitTabs();
   const list=document.getElementById('wordList');list.innerHTML='';
-  words.forEach(w=>addWord(w.en,w.zh));
+  const source=(unit.draftWords&&unit.draftWords.length)?unit.draftWords:words;
+  source.forEach(w=>addWord(w.en||'',w.zh||''));
   renderTable();
 }
-function saveCurrentFormSilently(){
+function collectCurrentFormWords(){
   const rows=[...document.querySelectorAll('#wordList .word-row')];
-  if(!rows.length)return;
-  const next=rows.map(r=>({en:r.children[0].value.trim(),zh:r.children[1].value.trim()})).filter(w=>w.en&&w.zh);
-  if(next.length){
-    const u=getCurrentUnit();u.words=next;words=u.words;persistUnits();
+  return rows.map(r=>({
+    en:(r.querySelector('.en-input')?.value||'').trim(),
+    zh:(r.querySelector('.zh-input')?.value||'').trim()
+  })).filter(w=>w.en||w.zh);
+}
+let autoSaveTimer=null;
+function scheduleAutoSave(){
+  clearTimeout(autoSaveTimer);
+  autoSaveTimer=setTimeout(()=>saveCurrentFormSilently(true),350);
+}
+function saveCurrentFormSilently(showStatus=false){
+  const next=collectCurrentFormWords();
+  if(!next.length)return;
+  const complete=next.filter(w=>w.en&&w.zh);
+  const u=getCurrentUnit();
+  u.words=complete;
+  u.draftWords=next;
+  words=u.words;
+  const ok=persistUnits();
+  if(showStatus&&ok){
+    const msg=document.getElementById('saveMsg');
+    if(msg){
+      msg.className='feedback goodtxt';
+      msg.textContent='✓ 已自動儲存';
+    }
   }
 }
 function createUnit(){
@@ -251,7 +285,7 @@ function createUnit(){
   if(!name){alert('請先輸入單元名稱。');return}
   saveCurrentFormSilently();
   const id='unit-'+Date.now();
-  units.push({id,name,words:defaults.map(w=>({...w}))});
+  units.push({id,name,words:[],draftWords:[]});
   currentUnitId=id;persistUnits();input.value='';renderTeacher();
 }
 function renameCurrentUnit(){
@@ -265,11 +299,11 @@ function deleteCurrentUnit(){
   units=units.filter(x=>x.id!==u.id);currentUnitId=units[0].id;persistUnits();renderTeacher();
 }
 function saveWords(){
-  const rows=[...document.querySelectorAll('#wordList .word-row')];
-  const next=rows.map(r=>({en:r.children[0].value.trim(),zh:r.children[1].value.trim()})).filter(w=>w.en&&w.zh);
+  const all=collectCurrentFormWords();
+  const next=all.filter(w=>w.en&&w.zh);
   const msg=document.getElementById('saveMsg');
   if(next.length<4){msg.className='feedback badtxt';msg.textContent='至少需要 4 組完整單字喔！';return}
-  const u=getCurrentUnit();u.words=next;words=u.words;persistUnits();
+  const u=getCurrentUnit();u.words=next;u.draftWords=all;words=u.words;persistUnits();
   msg.className='feedback goodtxt';msg.textContent='🎉「'+u.name+'」已儲存 '+words.length+' 個單字！';
   renderTable();
 }
@@ -600,7 +634,9 @@ function updatePet(){
  if(next){const pct=Math.min(100,((petXP-st.min)/(next.min-st.min))*100);document.getElementById('petBar').style.width=pct+'%';document.getElementById('petText').textContent='累積 '+petXP+' XP｜再 '+(next.min-petXP)+' XP 進化'}
  else{document.getElementById('petBar').style.width='100%';document.getElementById('petText').textContent='累積 '+petXP+' XP｜已達最高進化！'}
 }
-function finish(){show('result');document.getElementById('finalScore').textContent=score;const wrong=[...new Map(wrongWords.map(w=>[w.en,w])).values()];document.getElementById('finalText').textContent=wrong.length?`完成 ${quizQuestions.length} 題挑戰！今天最需要再複習：${wrong.map(w=>w.en).join('、')}`:`太厲害了！第一關全部答對，共完成 ${quizQuestions.length} 題挑戰。`;localStorage.setItem('wordAdventureLastScore',String(score));updatePet()}document.addEventListener('DOMContentLoaded',()=>{
+function finish(){show('result');document.getElementById('finalScore').textContent=score;const wrong=[...new Map(wrongWords.map(w=>[w.en,w])).values()];document.getElementById('finalText').textContent=wrong.length?`完成 ${quizQuestions.length} 題挑戰！今天最需要再複習：${wrong.map(w=>w.en).join('、')}`:`太厲害了！第一關全部答對，共完成 ${quizQuestions.length} 題挑戰。`;localStorage.setItem('wordAdventureLastScore',String(score));updatePet()}window.addEventListener('pagehide',()=>{try{saveCurrentFormSilently(false)}catch(e){}});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'){try{saveCurrentFormSilently(false)}catch(e){}}});
+document.addEventListener('DOMContentLoaded',()=>{
  const b=document.getElementById('catchSkipBtn');
  if(b){
    let skipping=false;
