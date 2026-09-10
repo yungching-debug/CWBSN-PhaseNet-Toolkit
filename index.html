@@ -219,27 +219,45 @@ function suggestZh(en){
  return zhDictionary[key]||'';
 }
 
-function handleEnglishInput(input){
- const row=input.closest('.word-row');
- if(!row)return;
+async function handleEnglishInput(input){
+ const row=input.closest('.word-row');if(!row)return;
  const zhInput=row.querySelector('.zh-input');
  const hint=row.nextElementSibling&&row.nextElementSibling.classList.contains('translation-hint')?row.nextElementSibling:null;
- const suggestion=suggestZh(input.value);
- if(suggestion){
-   if(!zhInput.dataset.userEdited || zhInput.dataset.userEdited==='false'){
-     zhInput.value=suggestion;
-     scheduleAutoSave();
-   }
-   if(hint){
-     hint.textContent='💡 建議中文：'+suggestion+'（可自行修改）';
-     hint.className='translation-hint ok';
-   }
- }else if(hint){
-   hint.textContent='目前沒有內建建議，請手動輸入中文意思。';
-   hint.className='translation-hint warn';
+ const en=input.value.trim();if(!en)return;
+ const local=suggestZh(en);
+ if(local){
+   if(!zhInput.dataset.userEdited||zhInput.dataset.userEdited==='false'){zhInput.value=local;scheduleAutoSave()}
+   if(hint){hint.textContent='📚 內建字典：'+local+'（可自行修改）';hint.className='translation-hint ok'}
+   return;
+ }
+ if(input.dataset.lastLookup===en.toLowerCase())return;
+ input.dataset.lastLookup=en.toLowerCase();
+ if(hint){hint.textContent='🌐 內建字典查不到，正在尋找線上翻譯建議…';hint.className='translation-hint'}
+ try{
+   const url='https://api.mymemory.translated.net/get?q='+encodeURIComponent(en)+'&langpair=en|zh-TW';
+   const res=await fetch(url);
+   if(!res.ok)throw new Error('translation http '+res.status);
+   const data=await res.json();
+   const suggestion=(data&&data.responseData&&data.responseData.translatedText||'').trim();
+   if(!suggestion||suggestion.toLowerCase()===en.toLowerCase())throw new Error('no suggestion');
+   if(hint){hint.textContent='🌐 找到線上翻譯建議，等待老師確認';hint.className='translation-hint ok'}
+   showTranslationConfirm(en,suggestion,zhInput,hint);
+ }catch(err){
+   console.warn('線上翻譯失敗',err);
+   if(hint){hint.textContent='⚠️ 暫時無法取得線上建議，請手動輸入中文意思。';hint.className='translation-hint warn'}
  }
 }
 
+function showTranslationConfirm(en,suggestion,zhInput,hint){
+ const modal=document.getElementById('translationModal');
+ document.getElementById('translationWord').textContent=en+' → ?';
+ const field=document.getElementById('translationSuggestion');field.value=suggestion;
+ modal.classList.remove('hidden');
+ const accept=document.getElementById('translationAccept'),cancel=document.getElementById('translationCancel');
+ const cleanup=()=>{modal.classList.add('hidden');accept.onclick=null;cancel.onclick=null};
+ accept.onclick=()=>{zhInput.value=field.value.trim();zhInput.dataset.userEdited='true';if(hint){hint.textContent='✓ 老師已確認：'+zhInput.value;hint.className='translation-hint ok'}scheduleAutoSave();cleanup()};
+ cancel.onclick=()=>{zhInput.focus();if(hint){hint.textContent='✏️ 請自行輸入中文意思';hint.className='translation-hint'}cleanup()};
+}
 function addWord(en='',zh=''){
   const wrap=document.createElement('div');
   const row=document.createElement('div');
@@ -708,6 +726,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 });
 show('home');
 </script>
+<div id="translationModal" class="modal hidden"><div class="modal-card"><div style="font-size:50px">🌐</div><h2>確認中文意思</h2><p id="translationWord" style="font-size:20px;font-weight:900"></p><p class="mini">線上翻譯提供以下建議，請老師確認後再使用：</p><input id="translationSuggestion" placeholder="中文意思"><div class="row" style="justify-content:center;margin-top:14px"><button class="btn primary" id="translationAccept">使用此建議 ✓</button><button class="btn" id="translationCancel">自行輸入</button></div></div></div>
 <div id="wrongModal" class="modal hidden">
   <div class="modal-box">
     <div style="font-size:54px">💡</div>
