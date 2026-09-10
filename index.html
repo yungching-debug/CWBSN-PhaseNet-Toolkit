@@ -59,7 +59,8 @@
       <button class="btn" type="button" onclick="connectTeacherClass()">連接既有班級</button>
     </div>
     <div class="row" style="margin-top:10px">
-  <button class="btn primary" type="button" onclick="backupLocalUnitsToCloud()">☁️ 備份本裝置所有單元</button>
+  <button class="btn primary" type="button" onclick="emergencyBackupRaw()">🛟 緊急備份原始資料</button>
+<button class="btn" type="button" onclick="backupLocalUnitsToCloud()">☁️ 備份本裝置所有單元</button>
 </div>
 <div id="cloudTeacherStatus" class="feedback"></div>
     <p class="mini">建立班級後請保存「班級代碼」與「老師管理金鑰」。學生只需要班級代碼。</p>
@@ -228,6 +229,33 @@ async function cloudSaveCurrentUnit(){
  u.cloudId=data.unit_id;persistUnits();
  if(out){out.className='feedback goodtxt';out.textContent='☁️ 已同步到班級 '+cloudClassCode}
  return true;
+}
+
+async function emergencyBackupRaw(){
+ const out=document.getElementById('cloudTeacherStatus');
+ if(!cloudClassCode||!cloudAdminKey){
+   out.className='feedback badtxt';out.textContent='請先確認目前已連接雲端班級（班級代碼＋老師管理金鑰）。';return;
+ }
+ out.className='feedback';out.textContent='🛟 正在原封不動備份本裝置資料…';
+ try{
+   const raw={};
+   for(let i=0;i<window.localStorage.length;i++){
+     const k=window.localStorage.key(i);
+     raw[k]=window.localStorage.getItem(k);
+   }
+   raw.__backup_meta={url:location.href,origin:location.origin,userAgent:navigator.userAgent,createdAt:new Date().toISOString()};
+   const {data,error}=await cloudDb.rpc('backup_local_storage',{
+     p_class_code:cloudClassCode,p_admin_key:cloudAdminKey,
+     p_label:'emergency-localStorage-before-migration',p_payload:raw
+   });
+   if(error)throw error;
+   safeStore.set('wordAdventureEmergencyBackupId',data.backup_id);
+   out.className='feedback goodtxt';
+   out.innerHTML='🛟 <b>原始資料已安全備份到 Supabase。</b><br>備份 ID：'+escapeHtml(data.backup_id)+'<br>現在再按「☁️ 備份本裝置所有單元」。';
+ }catch(err){
+   console.error(err);out.className='feedback badtxt';
+   out.textContent='緊急備份失敗：'+(err.message||err)+'。請先不要重新整理或清除網站資料。';
+ }
 }
 
 async function backupLocalUnitsToCloud(){
