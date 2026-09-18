@@ -64,6 +64,12 @@
 </div>
 <div id="cloudTeacherStatus" class="feedback"></div>
     <p class="mini">建立班級後請保存「班級代碼」與「老師管理金鑰」。學生只需要班級代碼。</p>
+    <hr style="border:0;border-top:1px solid #e7eef4;margin:20px 0">
+    <h3>📚 共用單元工作區</h3>
+    <p class="mini">先在下方建立、編輯所有需要的單元；完成後再勾選要加入的班級。每個班級仍需輸入自己的老師管理金鑰，避免誤改其他班級。</p>
+    <div id="classAssignGrid" class="unit-select-grid"></div>
+    <button class="btn primary" type="button" onclick="assignLocalUnitsToClasses()">＋ 將目前所有單元加入勾選班級</button>
+    <div id="classAssignStatus" class="feedback"></div>
   </div>
   <div class="card">
     <h3>單元管理</h3>
@@ -208,6 +214,40 @@ async function createCloudClass(){
  await syncAllLocalUnitsToCloud();
 }
 
+
+async function renderClassAssignment(){
+ const box=document.getElementById('classAssignGrid'); if(!box)return;
+ const {data,error}=await cloudDb.rpc('list_classes_for_assignment');
+ if(error){box.innerHTML='<div class="mini">暫時無法載入班級清單。</div>';return}
+ box.innerHTML='';
+ (data||[]).forEach(c=>{
+  const label=document.createElement('label'); label.className='unit-choice';
+  label.innerHTML='<div><input type="checkbox" class="assign-class" value="'+escapeHtml(c.code)+'" style="width:auto;margin-right:8px"><strong>'+escapeHtml(c.name)+'</strong> <span class="mini">('+escapeHtml(c.code)+')</span></div><input class="assign-key" data-code="'+escapeHtml(c.code)+'" type="password" placeholder="此班級老師管理金鑰" style="margin-top:10px">';
+  box.appendChild(label);
+ });
+}
+async function assignLocalUnitsToClasses(){
+ const out=document.getElementById('classAssignStatus');
+ const selected=[...document.querySelectorAll('.assign-class:checked')];
+ if(!selected.length){out.className='feedback badtxt';out.textContent='請至少勾選一個班級。';return}
+ const local=(units||[]).filter(u=>u&&u.name&&((u.draftWords&&u.draftWords.length)||(u.words&&u.words.length)));
+ if(!local.length){out.className='feedback badtxt';out.textContent='目前沒有含單字的單元可以加入。';return}
+ out.className='feedback';out.textContent='正在加入單元…';
+ let ok=0,fail=0;
+ for(const cb of selected){
+  const code=cb.value;
+  const key=(document.querySelector('.assign-key[data-code="'+CSS.escape(code)+'"]')?.value||'').trim();
+  if(!key){fail++;continue}
+  for(const u of local){
+   const payload=(u.draftWords&&u.draftWords.length?u.draftWords:u.words||[]).filter(w=>w&&w.en&&w.zh);
+   if(!payload.length)continue;
+   const {error}=await cloudDb.rpc('copy_unit_to_class',{p_class_code:code,p_admin_key:key,p_name:u.name,p_words:payload});
+   if(error){console.error('assign failed',code,u.name,error);fail++}else ok++;
+  }
+ }
+ out.className=fail?'feedback badtxt':'feedback goodtxt';
+ out.textContent=fail?'已加入 '+ok+' 個單元；另有 '+fail+' 次失敗（請確認管理金鑰）。':'✅ 完成！共加入 '+ok+' 個單元。';
+}
 async function connectTeacherClass(){
  const code=(document.getElementById('teacherClassCode')?.value||'').trim();
  const key=(document.getElementById('teacherAdminKey')?.value||'').trim();
@@ -472,7 +512,7 @@ function renderUnitTabs(){
   });
 }
 function renderTeacher(){
- setTimeout(()=>{const a=document.getElementById('teacherClassCode'),b=document.getElementById('teacherAdminKey');if(a)a.value=cloudClassCode;if(b)b.value=cloudAdminKey},0);
+ setTimeout(()=>{const a=document.getElementById('teacherClassCode'),b=document.getElementById('teacherAdminKey');if(a)a.value=cloudClassCode;if(b)b.value=cloudAdminKey;renderClassAssignment()},0);
   const unit=getCurrentUnit();words=unit.words||[];
   document.getElementById('currentUnitTitle').textContent=unit.name;
   renderUnitTabs();
