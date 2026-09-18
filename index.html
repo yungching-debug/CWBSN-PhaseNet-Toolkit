@@ -65,8 +65,10 @@
 <div id="cloudTeacherStatus" class="feedback"></div>
     <p class="mini">建立班級後請保存「班級代碼」與「老師管理金鑰」。學生只需要班級代碼。</p>
     <hr style="border:0;border-top:1px solid #e7eef4;margin:20px 0">
-    <h3>📚 共用單元工作區</h3>
-    <p class="mini">先在下方建立、編輯所有需要的單元；完成後再勾選要加入的班級。每個班級仍需輸入自己的老師管理金鑰，避免誤改其他班級。</p>
+    <h3>📚 共用教材庫</h3>
+    <p class="mini">教材庫獨立於班級保存。先從教材庫載入／編輯所有 Unit，再勾選要加入的班級；切換班級不會讓教材消失。</p>
+    <div id="libraryUnitGrid" class="unit-select-grid"></div>
+    <div class="row"><button class="btn yellow" type="button" onclick="loadLibraryToWorkspace()">📥 載入全部教材到工作區</button><button class="btn" type="button" onclick="saveWorkspaceToLibrary()">💾 將目前單元存回教材庫</button></div>
     <div id="classAssignGrid" class="unit-select-grid"></div>
     <button class="btn primary" type="button" onclick="assignLocalUnitsToClasses()">＋ 將目前所有單元加入勾選班級</button>
     <div id="classAssignStatus" class="feedback"></div>
@@ -215,6 +217,32 @@ async function createCloudClass(){
 }
 
 
+
+async function renderUnitLibrary(){
+ const box=document.getElementById('libraryUnitGrid');if(!box)return;
+ const {data,error}=await cloudDb.rpc('get_unit_library');
+ if(error){box.innerHTML='<div class="feedback badtxt">教材庫載入失敗：'+escapeHtml(error.message)+'</div>';return}
+ box.innerHTML=(data||[]).map(u=>'<div class="unit-choice"><strong>'+escapeHtml(u.name)+'</strong><div class="mini">'+((u.words||[]).length)+' 個單字</div></div>').join('');
+}
+async function loadLibraryToWorkspace(){
+ const {data,error}=await cloudDb.rpc('get_unit_library');
+ const out=document.getElementById('classAssignStatus');
+ if(error||!data){out.className='feedback badtxt';out.textContent='教材庫載入失敗。';return}
+ units=data.map(u=>({id:'library-'+u.id,libraryId:u.id,name:u.name,words:(u.words||[]).map(w=>({en:w.en,zh:w.zh})),draftWords:[]}));
+ currentUnitId=units[0]?.id||null; words=units[0]?.words||[]; persistUnits(); renderTeacher();
+ out.className='feedback goodtxt';out.textContent='✅ 已載入教材庫 '+units.length+' 個單元到老師工作區。';
+}
+async function saveWorkspaceToLibrary(){
+ const out=document.getElementById('classAssignStatus'); let saved=0;
+ try{saveCurrentFormSilently(false)}catch(e){}
+ for(const u of (units||[])){
+  const payload=(u.draftWords&&u.draftWords.length?u.draftWords:u.words||[]).filter(w=>w&&w.en&&w.zh);
+  if(!payload.length)continue;
+  const {error}=await cloudDb.rpc('save_library_unit',{p_name:u.name,p_words:payload});
+  if(!error)saved++;
+ }
+ await renderUnitLibrary(); out.className='feedback goodtxt';out.textContent='💾 已保存 '+saved+' 個單元到共用教材庫。';
+}
 async function renderClassAssignment(){
  const box=document.getElementById('classAssignGrid'); if(!box)return;
  const {data,error}=await cloudDb.rpc('list_classes_for_assignment');
@@ -512,7 +540,7 @@ function renderUnitTabs(){
   });
 }
 function renderTeacher(){
- setTimeout(()=>{const a=document.getElementById('teacherClassCode'),b=document.getElementById('teacherAdminKey');if(a)a.value=cloudClassCode;if(b)b.value=cloudAdminKey;renderClassAssignment()},0);
+ setTimeout(()=>{const a=document.getElementById('teacherClassCode'),b=document.getElementById('teacherAdminKey');if(a)a.value=cloudClassCode;if(b)b.value=cloudAdminKey;renderUnitLibrary();renderClassAssignment()},0);
   const unit=getCurrentUnit();words=unit.words||[];
   document.getElementById('currentUnitTitle').textContent=unit.name;
   renderUnitTabs();
