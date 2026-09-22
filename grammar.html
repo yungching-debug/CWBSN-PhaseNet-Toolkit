@@ -1,9 +1,9 @@
 <!doctype html>
 <html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Grammar Adventure 文法冒險</title><style>
 :root{--p:#3d7cff;--good:#269c61;--bad:#d95656}*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,"Noto Sans TC",sans-serif;background:linear-gradient(#eaf7ff,#fff);color:#17324d}.wrap{max-width:850px;margin:auto;padding:20px}.card{background:#fff;border-radius:24px;padding:22px;margin:18px 0;box-shadow:0 10px 30px #2659871f}.hero{text-align:center}.hero h1{font-size:clamp(34px,7vw,58px);margin:8px}.btn,.choice{border:0;border-radius:16px;padding:14px 18px;font-weight:800;font-size:17px;cursor:pointer}.btn{background:#eaf1f8}.primary{background:var(--p);color:#fff}.choices{display:grid;grid-template-columns:1fr 1fr;gap:12px}.choice{background:#fff;border:2px solid #dfe9f1}.question{text-align:center;font-size:26px;font-weight:900;line-height:1.65;margin:22px 0}.mini{color:#6f8497}.pill{display:inline-block;background:#edf4ff;border-radius:999px;padding:8px 12px;font-weight:800}.progress{height:14px;background:#e7eef5;border-radius:999px;overflow:hidden}.progress div{height:100%;background:var(--p)}.hidden{display:none!important}.good{color:var(--good)}.bad{color:var(--bad)}.feedback{text-align:center;font-size:19px;font-weight:800;min-height:32px;margin-top:14px}.row{display:flex;gap:10px;flex-wrap:wrap}input{flex:1;min-width:180px;border:2px solid #dbe7f0;border-radius:14px;padding:13px;font-size:17px}.level{border-left:6px solid var(--p)}@media(max-width:600px){.choices{grid-template-columns:1fr}}
-</style></head><body><div class="wrap"><div class="hero"><div style="font-size:50px">📝🚀</div><h1>Grammar Adventure</h1><p>Unit 1 人物｜people：Be 動詞・主詞・否定句</p></div>
+</style></head><body><div class="wrap"><div class="hero"><div style="font-size:50px">📝🚀</div><h1>Grammar Adventure</h1><p>從 Be 動詞一路挑戰一般動詞、助動詞與 Can / Could！</p></div>
 <div id="login" class="card"><h2>🎒 輸入班級代碼</h2><div class="row"><input id="classCode" placeholder="例如：承裕"><button class="btn primary" onclick="loadClass()">開始</button></div><div id="loginMsg" class="feedback"></div></div>
-<div id="menu" class="hidden"><div class="card"><span class="pill" id="unitLabel"></span><h2>選擇文法關卡</h2><p class="mini">使用 Unit 1「人物｜people」單字練習 Be 動詞、主詞與否定句。主詞關卡包含 I / you / he / she / we / they。</p><div class="row"><button class="btn primary" onclick="startLevel('be')">🌱 Level 1：Be 動詞</button><button class="btn primary" onclick="startLevel('subject')">🐣 Level 2：主詞</button><button class="btn primary" onclick="startLevel('negative')">🦜 Level 3：否定句</button><button class="btn primary" onclick="startLevel('boss')">👑 Boss：綜合挑戰</button></div></div><div class="card level"><h3>📌 今天的規則</h3><p><b>I → am</b><br><b>He / She → is</b><br><b>You / We / They → are</b><br><br><b>I am not ...</b><br><b>He / She isn't ...</b><br><b>You / We / They aren't ...</b></p></div></div>
+<div id="menu" class="hidden"><div class="card"><span class="pill" id="unitLabel"></span><h2>選擇文法關卡</h2><p class="mini">基礎關卡練習 Be 動詞與主詞；新增關卡練習一般動詞第三人稱、Do / Does，以及 Can / Could。</p><div class="row"><button class="btn primary" onclick="startLevel('be')">🌱 Level 1：Be 動詞</button><button class="btn primary" onclick="startLevel('subject')">🐣 Level 2：主詞</button><button class="btn primary" onclick="startLevel('negative')">🦜 Level 3：否定句</button><button class="btn primary" onclick="startLevel('verb')">🏃 Unit 4：一般動詞 s / es</button><button class="btn primary" onclick="startLevel('aux')">❓ Unit 5：Do / Does</button><button class="btn primary" onclick="startLevel('modal')">💪 Unit 6：Can / Could</button><button class="btn primary" onclick="startLevel('boss')">👑 Boss：綜合挑戰</button></div></div><div class="card level"><h3>📌 今天的規則</h3><p><b>I → am</b>　<b>He / She → is</b>　<b>You / We / They → are</b><br><br><b>一般動詞：</b>I / You / We / They + 原形；He / She + s / es / ies。<br><b>Do / Does：</b>Do + I/you/we/they；Does + he/she，後面的動詞用原形。<br><b>Can / Could：</b>後面的動詞一律使用原形。</p></div></div>
 <div id="game" class="hidden"><div class="row" style="justify-content:space-between"><span class="pill">⭐ <span id="score">0</span></span><span class="pill"><span id="no">1</span>/<span id="total">10</span></span></div><div class="progress"><div id="bar"></div></div><div class="card"><div id="kind" class="mini"></div><div id="question" class="question"></div><div id="choices" class="choices"></div><div id="feedback" class="feedback"></div></div></div>
 <div id="result" class="card hidden" style="text-align:center"><div style="font-size:70px">🏆</div><h1>完成文法挑戰！</h1><h2>⭐ <span id="finalScore"></span></h2><p id="finalText"></p><button class="btn primary" onclick="showMenu()">選擇其他關卡</button></div></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script>
@@ -27,7 +27,57 @@ function makeSubjectQuestions(){
   {k:'主詞 I / you / he / she / we / they',q:'The two children are my neighbors. ___ are playing in the park.',a:'They',o:['They','We','He','She'],why:'The two children 是複數，而且不包含說話者，所以使用 They；They 要搭配 are。'}
  ])
 }
-function make(type){if(type==='subject')return makeSubjectQuestions();const pool=sh(singular).slice(0,10);return pool.map((en,i)=>{const p=i%2?'He':'She',art=/^[aeiou]/i.test(en)?'an':'a';if(type==='be'){const mode=i%3;if(mode===0)return{k:'Be 動詞',q:`I ___ ${art} ${en}.`,a:'am',o:['am','is','are'],why:'I 要搭配 am。'};if(mode===1)return{k:'Be 動詞',q:`${p} ___ ${art} ${en}.`,a:'is',o:['am','is','are'],why:`${p} 要搭配 is。`};return{k:'Be 動詞',q:`They ___ ${en}s.`,a:'are',o:['am','is','are'],why:'They 是複數主詞，要搭配 are。'}}if(type==='negative'){const mode=i%3;if(mode===0)return{k:'否定句',q:`I ___ ${art} ${en}.`,a:'am not',o:['am not',"isn't","aren't"],why:'I 的 Be 動詞否定句使用 am not。'};if(mode===1)return{k:'否定句',q:`${p} ___ ${art} ${en}.`,a:"isn't",o:["isn't","am not","aren't"],why:`${p} → is；否定形式是 isn't。`};return{k:'否定句',q:`They ___ ${en}s.`,a:"aren't",o:["aren't","isn't",'am not'],why:`They → are；否定形式是 aren't。`}}const modes=['be','subject','negative'];return make(modes[i%3])[i%10]})}
+
+function makeVerbQuestions(){return sh([
+{k:'一般動詞｜+s',q:'I ___ basketball after school.',a:'play',o:['play','plays'],why:'主詞 I 後面的一般動詞使用原形。'},
+{k:'一般動詞｜+s',q:'He ___ basketball after school.',a:'plays',o:['play','plays'],why:'He 是第三人稱單數，所以 play 加 s。'},
+{k:'一般動詞｜+es',q:'Amy ___ TV every night.',a:'watches',o:['watch','watches'],why:'Amy 是第三人稱單數；watch 結尾為 ch，所以加 es。'},
+{k:'一般動詞｜+es',q:'My brother ___ to school by bus.',a:'goes',o:['go','goes'],why:'第三人稱單數的 go 變成 goes。'},
+{k:'一般動詞｜ies',q:'Kevin ___ English after dinner.',a:'studies',o:['study','studies'],why:'study 的子音+y 在第三人稱單數變成 studies。'},
+{k:'一般動詞｜+s',q:'My sister ___ milk every morning.',a:'drinks',o:['drink','drinks'],why:'My sister 是第三人稱單數，所以 drink 加 s。'},
+{k:'一般動詞｜+s',q:'Kevin ___ comic books after dinner.',a:'reads',o:['read','reads'],why:'Kevin 是第三人稱單數，所以 read 加 s。'},
+{k:'一般動詞｜+s',q:'They ___ their teacher.',a:'like',o:['like','likes'],why:'They 是複數主詞，使用動詞原形。'},
+{k:'一般動詞｜+s',q:'My dog ___ to sleep under the table.',a:'likes',o:['like','likes'],why:'My dog 是第三人稱單數，所以 like 加 s。'},
+{k:'一般動詞｜+s',q:'Amy ___ her mother in the kitchen.',a:'helps',o:['help','helps'],why:'Amy 是第三人稱單數，所以 help 加 s。'},
+{k:'一般動詞｜+s',q:'My father ___ at a hospital.',a:'works',o:['work','works'],why:'My father 是第三人稱單數，所以 work 加 s。'},
+{k:'一般動詞｜+s',q:'The students ___ to school every morning.',a:'walk',o:['walk','walks'],why:'The students 是複數，所以使用 walk。'},
+{k:'一般動詞｜+s',q:'Jack ___ very fast.',a:'runs',o:['run','runs'],why:'Jack 是第三人稱單數，所以 run 加 s。'},
+{k:'一般動詞｜+s',q:'My cat ___ on my bed every afternoon.',a:'sleeps',o:['sleep','sleeps'],why:'My cat 是第三人稱單數，所以 sleep 加 s。'},
+{k:'一般動詞｜+es',q:'Dad ___ the car on Sunday.',a:'washes',o:['wash','washes'],why:'wash 結尾為 sh，第三人稱單數加 es。'},
+{k:'一般動詞｜+es',q:'Mr. Lin ___ English at my school.',a:'teaches',o:['teach','teaches'],why:'teach 結尾為 ch，第三人稱單數加 es。'},
+{k:'一般動詞｜+es',q:'The boy ___ the ball.',a:'catches',o:['catch','catches'],why:'catch 結尾為 ch，第三人稱單數加 es。'},
+{k:'一般動詞｜ies',q:'The little boy ___ to open the box.',a:'tries',o:['try','tries'],why:'try 的子音+y 變成 tries。'},
+{k:'一般動詞｜ies',q:'The baby ___ when she is hungry.',a:'cries',o:['cry','cries'],why:'cry 的子音+y 變成 cries。'},
+{k:'一般動詞｜特殊',q:'Emily ___ a new bike.',a:'has',o:['have','has'],why:'have 的第三人稱單數是 has。'}
+]).slice(0,15)}
+function makeAuxQuestions(){return sh([
+{k:'Do / Does',q:'___ you like cats?',a:'Do',o:['Do','Does'],why:'you 搭配 Do。'},
+{k:'Do / Does',q:'___ he like cats?',a:'Does',o:['Do','Does'],why:'he 是第三人稱單數，問句使用 Does。'},
+{k:'Do / Does',q:'___ they play basketball?',a:'Do',o:['Do','Does'],why:'they 搭配 Do。'},
+{k:'Do / Does',q:'___ Amy walk to school?',a:'Does',o:['Do','Does'],why:'Amy 是第三人稱單數，使用 Does。'},
+{k:'Do / Does',q:'___ your brother have a bike?',a:'Does',o:['Do','Does'],why:'your brother 是第三人稱單數，使用 Does。'},
+{k:'否定句',q:'We ___ eat breakfast at school.',a:"don't",o:["don't","doesn't"],why:'we 的一般動詞否定句使用 do not / don’t。'},
+{k:'否定句',q:'She ___ drink coffee.',a:"doesn't",o:["don't","doesn't"],why:'she 使用 does not / doesn’t。'},
+{k:'助動詞＋原形',q:'Does Kevin ___ basketball?',a:'play',o:['play','plays'],why:'Does 後面的動詞要使用原形 play。'},
+{k:'助動詞＋原形',q:'Does she ___ English every day?',a:'study',o:['study','studies'],why:'Does 已經表示第三人稱，後面的動詞使用原形。'},
+{k:'助動詞＋原形',q:"He doesn't ___ TV before school.",a:'watch',o:['watch','watches'],why:"doesn't 後面的動詞使用原形。"},
+{k:'助動詞＋原形',q:"Amy doesn't ___ to school by bus.",a:'go',o:['go','goes'],why:"doesn't 後面的動詞使用原形 go。"}
+])}
+function makeModalQuestions(){return sh([
+{k:'Can｜能力',q:'I ___ swim very well.',a:'can',o:['can','am'],why:'表示現在的能力可以使用 can。'},
+{k:'Can＋原形',q:'She ___ speak English.',a:'can',o:['can','cans'],why:'can 不會因為 she 而加 s。'},
+{k:'Can｜問句',q:'___ you ride a bike?',a:'Can',o:['Can','Are'],why:'詢問能力可以用 Can you ...?'},
+{k:'Can｜否定',q:'My little brother ___ swim yet.',a:"can't",o:["can't","doesn't can"],why:'can 的否定是 cannot / can’t。'},
+{k:'Can＋原形',q:'Birds ___ fly.',a:'can',o:['can','can to'],why:'can 後面直接接動詞原形，不加 to。'},
+{k:'Can＋原形',q:'Can Kevin ___ basketball?',a:'play',o:['play','plays'],why:'can 後面的動詞使用原形。'},
+{k:'Can＋原形',q:'She can ___ very fast.',a:'run',o:['run','runs'],why:'即使主詞是 she，can 後面仍使用 run。'},
+{k:'Could｜過去能力',q:'I ___ ride a bike when I was five.',a:'could',o:['could','can'],why:'when I was five 表示過去，這裡使用 could 表示過去的能力。'},
+{k:'Could｜過去能力',q:'My grandfather ___ run very fast when he was young.',a:'could',o:['could','can'],why:'when he was young 是過去時間，所以使用 could。'},
+{k:'Could｜禮貌請求',q:'___ you help me, please?',a:'Could',o:['Could','Does'],why:'Could you ...? 可以用來提出較客氣的請求。'},
+{k:'Could＋原形',q:'Could you ___ the door, please?',a:'open',o:['open','opens'],why:'could 後面的動詞使用原形 open。'},
+{k:'Could＋原形',q:"She couldn't ___ when she was a baby.",a:'read',o:['read','reads'],why:"couldn't 後面的動詞使用原形 read。"}
+])}
+function make(type){if(type==='subject')return makeSubjectQuestions();if(type==='verb')return makeVerbQuestions();if(type==='aux')return makeAuxQuestions();if(type==='modal')return makeModalQuestions();const pool=sh(singular).slice(0,10);return pool.map((en,i)=>{const p=i%2?'He':'She',art=/^[aeiou]/i.test(en)?'an':'a';if(type==='be'){const mode=i%3;if(mode===0)return{k:'Be 動詞',q:`I ___ ${art} ${en}.`,a:'am',o:['am','is','are'],why:'I 要搭配 am。'};if(mode===1)return{k:'Be 動詞',q:`${p} ___ ${art} ${en}.`,a:'is',o:['am','is','are'],why:`${p} 要搭配 is。`};return{k:'Be 動詞',q:`They ___ ${en}s.`,a:'are',o:['am','is','are'],why:'They 是複數主詞，要搭配 are。'}}if(type==='negative'){const mode=i%3;if(mode===0)return{k:'否定句',q:`I ___ ${art} ${en}.`,a:'am not',o:['am not',"isn't","aren't"],why:'I 的 Be 動詞否定句使用 am not。'};if(mode===1)return{k:'否定句',q:`${p} ___ ${art} ${en}.`,a:"isn't",o:["isn't","am not","aren't"],why:`${p} → is；否定形式是 isn't。`};return{k:'否定句',q:`They ___ ${en}s.`,a:"aren't",o:["aren't","isn't",'am not'],why:`They → are；否定形式是 aren't。`}}const modes=['be','subject','negative'];return make(modes[i%3])[i%10]})}
 function startLevel(type){questions=make(type);qi=0;score=0;document.getElementById('menu').classList.add('hidden');document.getElementById('result').classList.add('hidden');document.getElementById('game').classList.remove('hidden');render()}
 function render(){const x=questions[qi];document.getElementById('score').textContent=score;document.getElementById('no').textContent=qi+1;document.getElementById('total').textContent=questions.length;document.getElementById('bar').style.width=(qi/questions.length*100)+'%';document.getElementById('kind').textContent=x.k;document.getElementById('question').textContent=x.q;document.getElementById('feedback').textContent='';const c=document.getElementById('choices');c.innerHTML='';sh(x.o).forEach(o=>{const b=document.createElement('button');b.className='choice';b.textContent=o;b.onclick=()=>answer(o,x);c.appendChild(b)})}
 function answer(o,x){document.querySelectorAll('#choices button').forEach(b=>b.disabled=true);const f=document.getElementById('feedback');if(o===x.a){score+=10;f.className='feedback good';f.textContent='✅ 答對了！ '+x.why}else{f.className='feedback bad';f.textContent='❌ 正確答案：'+x.a+'。 '+x.why}setTimeout(()=>{qi++;if(qi<questions.length)render();else finish()},1500)}
