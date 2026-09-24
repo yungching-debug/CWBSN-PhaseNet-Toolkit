@@ -131,13 +131,13 @@
   <div id="stageSelectMsg" class="feedback"></div>
  </div>
 </section>
-<section id="quiz" class="hidden"><div class="topbar"><span class="pill">⭐ <span id="score">0</span></span><span class="pill">題目 <span id="qNo">1</span>/<span id="qTotal">10</span></span></div><div class="skip-wrap"><button class="btn skip-btn" onclick="skipStage('quiz')">⏭ 跳過此關</button></div><div class="progress"><div id="bar"></div></div><div class="card"><div class="mini">第一關：選出正確意思</div><div class="question" id="question"></div><div class="choices" id="choices"></div><div class="feedback" id="feedback"></div></div></section>
-<section id="match" class="hidden"><div class="topbar"><h2>🃏 第二關：翻牌配對</h2><span class="pill">配對 <span id="matchDone">0</span>/<span id="matchTotal">0</span></span></div><div class="skip-wrap"><button class="btn skip-btn" onclick="skipStage('match')">⏭ 跳過此關</button></div><div class="card"><p class="mini">依序點兩張卡，找出英文與中文的正確配對。</p><div id="matchGrid" class="match-grid"></div><div id="matchFeedback" class="feedback"></div></div></section>
+<section id="quiz" class="hidden"><div class="topbar"><span class="pill">⭐ <span id="score" class="liveScore">0</span> <span class="liveEmoji">🥚</span></span><span class="pill">題目 <span id="qNo">1</span>/<span id="qTotal">10</span></span></div><div class="skip-wrap"><button class="btn skip-btn" onclick="skipStage('quiz')">⏭ 跳過此關</button></div><div class="progress"><div id="bar"></div></div><div class="card"><div class="mini">第一關：選出正確意思</div><div class="question" id="question"></div><div class="choices" id="choices"></div><div class="feedback" id="feedback"></div></div></section>
+<section id="match" class="hidden"><div class="topbar"><h2>🃏 第二關：翻牌配對</h2><span class="pill">⭐ <span class="liveScore">0</span> <span class="liveEmoji">🥚</span>｜配對 <span id="matchDone">0</span>/<span id="matchTotal">0</span></span></div><div class="skip-wrap"><button class="btn skip-btn" onclick="skipStage('match')">⏭ 跳過此關</button></div><div class="card"><p class="mini">依序點兩張卡，找出英文與中文的正確配對。</p><div id="matchGrid" class="match-grid"></div><div id="matchFeedback" class="feedback"></div></div></section>
 
 <section id="animGame" class="hidden">
   <div class="topbar">
     <h2>🎈 第三關：單字氣球大作戰</h2>
-    <span class="pill">⭐ <span id="animScore">0</span></span>
+    <span class="pill">⭐ <span id="animScore" class="liveScore">0</span> <span class="liveEmoji">🥚</span></span>
   </div>
   <div class="skip-wrap"><button class="btn skip-btn" onclick="skipStage('animGame')">⏭ 跳過此關</button></div>
   <div class="card">
@@ -148,7 +148,7 @@
 </section>
 
 <section id="catchGame" class="hidden">
- <div class="topbar"><h2>🧺 第四關：接住正確單字</h2><span class="pill">⭐ <span id="catchScore">0</span></span></div>
+ <div class="topbar"><h2>🧺 第四關：接住正確單字</h2><span class="pill">⭐ <span id="catchScore" class="liveScore">0</span> <span class="liveEmoji">🥚</span></span></div>
  <div class="skip-wrap" style="position:relative;z-index:9999;pointer-events:auto"><button type="button" id="catchSkipBtn" class="btn skip-btn" style="position:relative;z-index:10000;pointer-events:auto">⏭ 跳過此關</button></div>
  <div class="card">
   <div class="game-prompt" id="catchPrompt"></div>
@@ -162,7 +162,7 @@
 </section>
 
 <section id="theater" class="hidden" style="display:none!important">
- <div class="topbar"><h2>🎬 第五關：單字小劇場</h2><span class="pill">⭐ <span id="theaterScore">0</span></span></div>
+ <div class="topbar"><h2>🎬 第五關：單字小劇場</h2><span class="pill">⭐ <span id="theaterScore" class="liveScore">0</span> <span class="liveEmoji">🥚</span></span></div>
  <div class="skip-wrap"><button class="btn skip-btn" onclick="skipStage('theater')">⏭ 跳過此關</button></div>
  <div class="card">
   <div class="theater" id="theaterStage"></div>
@@ -171,7 +171,7 @@
   <div class="feedback" id="theaterFeedback"></div>
  </div>
 </section>
-<section id="review" class="hidden"><div class="topbar"><h2>🔥 Boss 關：錯題再挑戰</h2><span class="pill">⭐ <span id="reviewScore">0</span></span></div><div class="skip-wrap"><button class="btn skip-btn" onclick="skipStage('review')">⏭ 跳過此關</button></div><div class="card"><div class="question" id="reviewQuestion"></div><div class="choices" id="reviewChoices"></div><div class="feedback" id="reviewFeedback"></div></div></section>
+<section id="review" class="hidden"><div class="topbar"><h2>🔥 Boss 關：錯題再挑戰</h2><span class="pill">⭐ <span id="reviewScore" class="liveScore">0</span> <span class="liveEmoji">🥚</span></span></div><div class="skip-wrap"><button class="btn skip-btn" onclick="skipStage('review')">⏭ 跳過此關</button></div><div class="card"><div class="question" id="reviewQuestion"></div><div class="choices" id="reviewChoices"></div><div class="feedback" id="reviewFeedback"></div></div></section>
 <section id="result" class="hidden"><div class="card result"><div style="font-size:72px">🏆</div><h1>Mission Complete!</h1>
 <div class="pet-box"><div class="pet" id="pet">🥚</div><h3 id="petName">你的冒險夥伴</h3><div class="progress pet-xp"><div id="petBar"></div></div><p id="petText" class="mini"></p></div><div class="score"><span id="finalScore">0</span> ⭐</div><p id="finalText"></p><div class="row" style="justify-content:center"><button class="btn primary" onclick="startGame()">再玩一次</button><button class="btn yellow" onclick="show('home')">回首頁</button></div></div></section>
 </div><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -631,11 +631,13 @@ function selectStudentUnit(id){
 function shuffle(a){return [...a].sort(()=>Math.random()-.5)}
 function openStageSelect(){document.getElementById('selectedUnitLabel').textContent='📚 '+getCurrentUnit().name+'｜'+getCurrentUnit().words.length+' 個單字';show('stageSelect')}
 function toggleAllStages(v){document.querySelectorAll('#stageSelect input[type=checkbox]').forEach(x=>x.checked=v)}
+function sessionEmoji(){if(score>=900)return'🦅';if(score>=500)return'🦜';if(score>=250)return'🐥';if(score>=100)return'🐣';return'🥚'}
+function updateLiveScore(){document.querySelectorAll('.liveScore').forEach(x=>x.textContent=score);document.querySelectorAll('.liveEmoji').forEach(x=>x.textContent=sessionEmoji())}
 function startSelectedStages(){
  selectedStages=[...document.querySelectorAll('#stageSelect input[type=checkbox]:checked')].map(x=>x.value);
  const msg=document.getElementById('stageSelectMsg');
  if(!selectedStages.length){msg.className='feedback badtxt';msg.textContent='請至少選擇一個關卡。';return}
- score=0;wrongWords=[];currentStageIndex=0;startStage(selectedStages[0]);
+ score=0;wrongWords=[];currentStageIndex=0;updateLiveScore();startStage(selectedStages[0]);
 }
 function startStage(stage){
  if(stage==='quiz')return startGame(true);
@@ -651,8 +653,8 @@ function nextSelectedStage(current){
  if(idx>=0&&idx<selectedStages.length-1){currentStageIndex=idx+1;startStage(selectedStages[currentStageIndex])}
  else finish();
 }
-function startGame(fromSelection=false){if(words.length<4){alert('請先請老師建立至少 4 個單字。');return}score=0;wrongWords=[];qi=0;quizQuestions=shuffle(words).slice(0,Math.min(10,words.length));document.getElementById('qTotal').textContent=quizQuestions.length;show('quiz');renderQuestion()}
-function renderQuestion(){const w=quizQuestions[qi];document.getElementById('qNo').textContent=qi+1;document.getElementById('score').textContent=score;document.getElementById('bar').style.width=(qi/quizQuestions.length*100)+'%';document.getElementById('question').textContent=w.en;document.getElementById('feedback').textContent='';let distract=shuffle(words.filter(x=>x.zh!==w.zh)).slice(0,3).map(x=>x.zh),opts=shuffle([w.zh,...distract]),choices=document.getElementById('choices');choices.innerHTML='';opts.forEach(o=>{const b=document.createElement('button');b.className='choice';b.textContent=o;b.onclick=()=>answerQuiz(o===w.zh,w);choices.appendChild(b)})}
+function startGame(fromSelection=false){if(words.length<4){alert('請先請老師建立至少 4 個單字。');return}if(!fromSelection){score=0;wrongWords=[];updateLiveScore()}qi=0;quizQuestions=shuffle(words).slice(0,Math.min(10,words.length));document.getElementById('qTotal').textContent=quizQuestions.length;show('quiz');renderQuestion()}
+function renderQuestion(){const w=quizQuestions[qi];document.getElementById('qNo').textContent=qi+1;updateLiveScore();document.getElementById('bar').style.width=(qi/quizQuestions.length*100)+'%';document.getElementById('question').textContent=w.en;document.getElementById('feedback').textContent='';let distract=shuffle(words.filter(x=>x.zh!==w.zh)).slice(0,3).map(x=>x.zh),opts=shuffle([w.zh,...distract]),choices=document.getElementById('choices');choices.innerHTML='';opts.forEach(o=>{const b=document.createElement('button');b.className='choice';b.textContent=o;b.onclick=()=>answerQuiz(o===w.zh,w);choices.appendChild(b)})}
 function showWrongModal(w,next){
   document.getElementById('wrongModalText').textContent='你剛剛答錯了，正確答案是：';
   document.getElementById('wrongModalAnswer').textContent=w.en+' = '+w.zh;
@@ -670,7 +672,7 @@ function answerQuiz(ok,w){
   const goNext=()=>{qi++;if(qi<quizQuestions.length)renderQuestion();else nextSelectedStage('quiz')};
   if(ok){
     score+=10;f.className='feedback goodtxt';f.textContent='🎉 Great! +10 ⭐';
-    document.getElementById('score').textContent=score;
+    updateLiveScore();
     setTimeout(goNext,700);
   }else{
     wrongWords.push(w);f.className='feedback badtxt';f.textContent='這題先記起來，再繼續！';
@@ -678,7 +680,7 @@ function answerQuiz(ok,w){
   }
 }
 function startMatch(){show('match');let set=shuffle(words).slice(0,Math.min(6,words.length));matched=0;selectedMatch=null;document.getElementById('matchDone').textContent='0';document.getElementById('matchTotal').textContent=set.length;const cards=[];set.forEach((w,i)=>cards.push({id:i,type:'en',text:w.en},{id:i,type:'zh',text:w.zh}));const grid=document.getElementById('matchGrid');grid.innerHTML='';shuffle(cards).forEach(c=>{const b=document.createElement('button');b.className='match';b.textContent=c.text;b.dataset.id=c.id;b.dataset.type=c.type;b.onclick=()=>selectMatch(b);grid.appendChild(b)})}
-function selectMatch(btn){if(btn.classList.contains('done')||btn===selectedMatch)return;btn.classList.add('selected');if(!selectedMatch){selectedMatch=btn;return}const first=selectedMatch,second=btn;if(first.dataset.id===second.dataset.id&&first.dataset.type!==second.dataset.type){first.classList.add('done');second.classList.add('done');first.classList.remove('selected');second.classList.remove('selected');selectedMatch=null;matched++;score+=10;document.getElementById('matchDone').textContent=matched;document.getElementById('matchFeedback').textContent='✨ MATCH! +10 ⭐';if(matched===Number(document.getElementById('matchTotal').textContent))setTimeout(()=>nextSelectedStage('match'),650)}else setTimeout(()=>{first.classList.remove('selected');second.classList.remove('selected');selectedMatch=null},450)}
+function selectMatch(btn){if(btn.classList.contains('done')||btn===selectedMatch)return;btn.classList.add('selected');if(!selectedMatch){selectedMatch=btn;return}const first=selectedMatch,second=btn;if(first.dataset.id===second.dataset.id&&first.dataset.type!==second.dataset.type){first.classList.add('done');second.classList.add('done');first.classList.remove('selected');second.classList.remove('selected');selectedMatch=null;matched++;score+=10;updateLiveScore();document.getElementById('matchDone').textContent=matched;document.getElementById('matchFeedback').textContent='✨ MATCH! +10 ⭐';if(matched===Number(document.getElementById('matchTotal').textContent))setTimeout(()=>nextSelectedStage('match'),650)}else setTimeout(()=>{first.classList.remove('selected');second.classList.remove('selected');selectedMatch=null},450)}
 function startAnimGame(){
   show('animGame');
   animWords=shuffle(words).slice(0,Math.min(5,words.length));
@@ -710,7 +712,7 @@ function answerAnim(ok,w,btn){
   const next=()=>{ai++;if(ai<animWords.length)renderAnimRound();else nextSelectedStage('animGame')};
   if(ok){
     combo++;score+=15;animRoundScore+=15;
-    document.getElementById('animScore').textContent=animRoundScore;
+    updateLiveScore();
     btn.classList.add('pop');
     f.className='feedback goodtxt';
     f.innerHTML='💥 POP! +15 ⭐'+(combo>1?'<div class="combo">🔥 COMBO × '+combo+'</div>':'');
@@ -820,7 +822,7 @@ function resolveCatch(ok,w,item,missedAll=false){
 
  if(ok){
    score+=15;catchRoundScore+=15;
-   document.getElementById('catchScore').textContent=catchRoundScore;
+   updateLiveScore();
    f.className='feedback goodtxt';
    f.textContent='🎉 接到了！+15 ⭐';
    if(item){item.style.transform='scale(1.2)';item.style.opacity='.25'}
@@ -898,7 +900,7 @@ function answerTheater(ok,w){
  if(ok){
   score+=15;
   theaterRoundScore+=15;
-  document.getElementById('theaterScore').textContent=theaterRoundScore;
+  updateLiveScore();
   f.className='feedback goodtxt';
   f.textContent='🎬 答對了！+15 ⭐';
   setTimeout(next,800);
@@ -911,7 +913,7 @@ function answerTheater(ok,w){
 }
 
 function startReview(){reviewList=shuffle([...new Map(wrongWords.map(w=>[w.en,w])).values()]);ri=0;reviewScore=0;if(reviewList.length===0){nextSelectedStage('review');return}show('review');renderReview()}
-function renderReview(){const w=reviewList[ri];document.getElementById('reviewScore').textContent=reviewScore;document.getElementById('reviewQuestion').textContent=`「${w.zh}」的英文是哪一個？`;let distract=shuffle(words.filter(x=>x.en!==w.en)).slice(0,3).map(x=>x.en),opts=shuffle([w.en,...distract]),c=document.getElementById('reviewChoices');c.innerHTML='';opts.forEach(o=>{const b=document.createElement('button');b.className='choice';b.textContent=o;b.onclick=()=>{[...c.children].forEach(x=>x.disabled=true);const ok=o===w.en,f=document.getElementById('reviewFeedback');if(ok){score+=15;reviewScore+=15;f.textContent='🔥 Boss 擊破！+15 ⭐'}else{wrongWords.push(w);f.textContent='這題再記一次！';showWrongModal(w,()=>{ri++;if(ri<reviewList.length)renderReview();else nextSelectedStage('review')});return}setTimeout(()=>{ri++;if(ri<reviewList.length)renderReview();else nextSelectedStage('review')},650)};c.appendChild(b)})}
+function renderReview(){const w=reviewList[ri];updateLiveScore();document.getElementById('reviewQuestion').textContent=`「${w.zh}」的英文是哪一個？`;let distract=shuffle(words.filter(x=>x.en!==w.en)).slice(0,3).map(x=>x.en),opts=shuffle([w.en,...distract]),c=document.getElementById('reviewChoices');c.innerHTML='';opts.forEach(o=>{const b=document.createElement('button');b.className='choice';b.textContent=o;b.onclick=()=>{[...c.children].forEach(x=>x.disabled=true);const ok=o===w.en,f=document.getElementById('reviewFeedback');if(ok){score+=15;reviewScore+=15;f.textContent='🔥 Boss 擊破！+15 ⭐'}else{wrongWords.push(w);f.textContent='這題再記一次！';showWrongModal(w,()=>{ri++;if(ri<reviewList.length)renderReview();else nextSelectedStage('review')});return}setTimeout(()=>{ri++;if(ri<reviewList.length)renderReview();else nextSelectedStage('review')},650)};c.appendChild(b)})}
 function skipCatchStage(e){
  if(e){e.preventDefault();e.stopPropagation();}
  catchResolved=true;
@@ -932,14 +934,14 @@ function skipStage(stage){
  nextSelectedStage(stage);
 }
 function updatePet(){
- petXP+=score;localStorage.setItem('wordAdventurePetXP',String(petXP));
+ petXP=score;
  const stages=[{min:0,e:'🥚',name:'神秘蛋'},{min:100,e:'🐣',name:'小小鳥'},{min:250,e:'🐥',name:'冒險小雞'},{min:500,e:'🦜',name:'彩羽夥伴'},{min:900,e:'🦅',name:'天空勇者'}];
  let st=stages[0];for(const x of stages)if(petXP>=x.min)st=x;
  const next=stages[stages.indexOf(st)+1];
  const pet=document.getElementById('pet');pet.textContent=st.e;pet.classList.remove('evolve');void pet.offsetWidth;pet.classList.add('evolve');
  document.getElementById('petName').textContent=st.name;
- if(next){const pct=Math.min(100,((petXP-st.min)/(next.min-st.min))*100);document.getElementById('petBar').style.width=pct+'%';document.getElementById('petText').textContent='累積 '+petXP+' XP｜再 '+(next.min-petXP)+' XP 進化'}
- else{document.getElementById('petBar').style.width='100%';document.getElementById('petText').textContent='累積 '+petXP+' XP｜已達最高進化！'}
+ if(next){const pct=Math.min(100,((petXP-st.min)/(next.min-st.min))*100);document.getElementById('petBar').style.width=pct+'%';document.getElementById('petText').textContent='本次 '+petXP+' XP｜再 '+(next.min-petXP)+' XP 進化'}
+ else{document.getElementById('petBar').style.width='100%';document.getElementById('petText').textContent='本次 '+petXP+' XP｜已達最高進化！'}
 }
 function finish(){show('result');document.getElementById('finalScore').textContent=score;const wrong=[...new Map(wrongWords.map(w=>[w.en,w])).values()];document.getElementById('finalText').textContent=wrong.length?`完成 ${quizQuestions.length} 題挑戰！今天最需要再複習：${wrong.map(w=>w.en).join('、')}`:`太厲害了！第一關全部答對，共完成 ${quizQuestions.length} 題挑戰。`;localStorage.setItem('wordAdventureLastScore',String(score));updatePet()}window.addEventListener('pagehide',()=>{try{saveCurrentFormSilently(false)}catch(e){}});
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'){try{saveCurrentFormSilently(false)}catch(e){}}});
